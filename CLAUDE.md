@@ -135,8 +135,22 @@ For detailed implementation patterns and examples:
 - **[docs/frontend-patterns.md](docs/frontend-patterns.md)** - Vue/Nuxt patterns, API plugin, and loading system
 - **[docs/backend-patterns.md](docs/backend-patterns.md)** - NestJS patterns, ConfigService, and database connections
 - **[docs/api-communication.md](docs/api-communication.md)** - Complete API communication flow and data format standards
+- **[docs/auth-security-architecture.md](docs/auth-security-architecture.md)** - Authentication, security, and CSRF protection patterns
 
 
+
+## Authentication & Security Quick Reference
+
+**Core Security Architecture:**
+- **JWT Dual-Token**: Access Token (15min, Bearer) + Refresh Token (12hr, HttpOnly Cookie)
+- **CSRF Protection**: Double-submit cookie pattern with automatic token management
+- **Auto Features**: Token refresh, retry logic, cross-tab session sync, loading states
+
+**Key Files for Auth/Security:**
+- **Backend**: `/backend/src/module/auth/`, `/backend/src/module/security/`
+- **Frontend**: `plugins/api.ts`, `stores/auth.ts`, `composables/utils/useCsrf.ts`
+
+For complete authentication and security details, see: **[docs/auth-security-architecture.md](docs/auth-security-architecture.md)**
 
 ## API Communication Architecture
 

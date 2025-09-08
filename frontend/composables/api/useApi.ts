@@ -1,6 +1,6 @@
 // composables/api/useApi.ts
-import type { ApiResponse, ApiContextFlags } from '../utils/apiHelpers'
-import { normalizeError } from '../utils/apiHelpers'
+import type { ApiResponse, ApiContextFlags } from '../utils/useApiHelper'
+import { normalizeError } from '../utils/useApiHelper'
 import type { ExtendedApi } from '~/plugins/api'
 
 export const useApi = async <T = any>(

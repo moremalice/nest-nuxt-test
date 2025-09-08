@@ -1,8 +1,8 @@
 // /frontend/plugins/api.ts
 import { storeToRefs } from 'pinia'
 import type { $Fetch } from 'ofetch'
-import { isCsrfError } from '~/composables/utils/apiHelpers'
-import type { ApiContextFlags } from '~/composables/utils/apiHelpers'
+import { isCsrfError } from '~/composables/utils/useApiHelper'
+import type { ApiContextFlags } from '~/composables/utils/useApiHelper'
 
 // 확장된 $fetch 옵션 타입 (export로 다른 파일에서 사용 가능)
 export interface ExtendedFetchOptions {
