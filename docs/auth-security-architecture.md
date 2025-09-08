@@ -24,6 +24,7 @@ This document provides a comprehensive overview of the authentication and securi
 | | `strategies/jwt-refresh.strategy.ts` | Refresh token validation strategy |
 | | `guards/jwt-auth.guard.ts` | Access token guard for protected routes |
 | | `guards/jwt-refresh.guard.ts` | Refresh token guard for token refresh |
+| | `guards/optional-jwt-auth.guard.ts` | Optional authentication guard for mixed access |
 | **security/** | `security.module.ts` | CSRF protection module |
 | | `csrf.controller.ts` | CSRF token generation endpoint |
 | | `csrf.service.ts` | Double-submit cookie CSRF implementation |
@@ -178,11 +179,12 @@ channel.onmessage = (event) => {
 
 ### Backend Guards
 
-| Guard | Purpose | Applied To |
-|-------|---------|------------|
-| `JwtAuthGuard` | Validates Access Token | Protected routes |
-| `JwtRefreshGuard` | Validates Refresh Token | `/auth/refresh` only |
-| `ProxyAwareThrottlerGuard` | Rate limiting with proxy support | All routes |
+| Guard | Purpose | Applied To | Behavior |
+|-------|---------|------------|----------|
+| `JwtAuthGuard` | Validates Access Token | Protected routes | Blocks if no/invalid token |
+| `JwtRefreshGuard` | Validates Refresh Token | `/auth/refresh` only | Blocks if no/invalid token |
+| `OptionalJwtAuthGuard` | Optional authentication | Public routes with auth benefits | Allows all, adds user if token valid |
+| `ProxyAwareThrottlerGuard` | Rate limiting with proxy support | All routes | Rate limiting based on IP |
 
 ### Security Headers
 
@@ -214,6 +216,76 @@ CSRF_FAIL_MODE=closed  # or 'open'
 BCRYPT_ROUNDS=10
 THROTTLE_TTL=60
 THROTTLE_LIMIT=10
+```
+
+## Optional Authentication Pattern
+
+### Use Case
+Endpoints that are accessible to both guests and authenticated users, but provide enhanced functionality when authenticated.
+
+### Backend Implementation
+
+```typescript
+// Example: Posts endpoint that shows public posts to guests
+// but personalized content to authenticated users
+@Controller('posts')
+export class PostsController {
+  @Get()
+  @UseGuards(OptionalJwtAuthGuard)  // Optional authentication
+  async getPosts(@Req() req) {
+    const userId = req.user?.sub;  // null for guests, user ID for authenticated
+    
+    if (userId) {
+      // Return personalized content for authenticated users
+      return await this.postsService.getPersonalizedPosts(userId);
+    }
+    
+    // Return public content for guests
+    return await this.postsService.getPublicPosts();
+  }
+  
+  @Get('recommended')
+  @UseGuards(OptionalJwtAuthGuard)
+  async getRecommendedPosts(@Req() req) {
+    const user = req.user;  // Can be null
+    
+    return {
+      posts: await this.postsService.getRecommended(user?.sub),
+      isPersonalized: !!user  // Indicate if content is personalized
+    };
+  }
+}
+```
+
+### Frontend Usage
+
+```typescript
+// Frontend can call the same endpoint regardless of auth status
+const { data } = await useApiGet<PostsResponse>('/posts');
+
+// The response might include personalized content if user is authenticated
+if (data.isPersonalized) {
+  // Handle personalized content
+} else {
+  // Handle public content
+}
+```
+
+### Guard Implementation Details
+
+```typescript
+// guards/optional-jwt-auth.guard.ts
+@Injectable()
+export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
+    // Key difference: Return null instead of throwing error
+    // This allows the request to continue without authentication
+    if (err || !user) {
+      return null;  // req.user will be null
+    }
+    return user;  // req.user will contain user data
+  }
+}
 ```
 
 ## Common Implementation Patterns
@@ -250,7 +322,25 @@ export class ProtectedController {
 }
 ```
 
-### 4. Manual Token Refresh (Frontend)
+### 4. Optional Authentication Endpoint (Backend)
+
+```typescript
+@Controller('content')
+export class ContentController {
+  @Get('featured')
+  @UseGuards(OptionalJwtAuthGuard)  // Optional authentication
+  getFeaturedContent(@Req() req) {
+    const userId = req.user?.sub;
+    
+    return {
+      content: this.contentService.getFeatured(userId),
+      personalized: !!userId
+    };
+  }
+}
+```
+
+### 5. Manual Token Refresh (Frontend)
 
 ```typescript
 const authStore = useAuthStore()
