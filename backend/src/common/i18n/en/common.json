@@ -1,0 +1,45 @@
+{
+  "_comment": "File path: backend/src/common/i18n/en/common.json",
+  "_description": "English translations for common messages",
+  "policy": {
+    "TERMS_NOT_FOUND": "Terms not found.",
+    "TERMS_LIST_ERROR": "An error occurred while loading the terms list.",
+    "TERMS_DETAIL_ERROR": "An error occurred while loading the terms details.",
+    "INVALID_IDX": "Invalid terms ID.",
+    "TERMS_DETAIL_NOT_FOUND": "Terms details not found.",
+    "PRIVACY_NOT_FOUND": "Privacy policy not found.",
+    "PRIVACY_LIST_ERROR": "An error occurred while loading the privacy policy list.",
+    "PRIVACY_DETAIL_ERROR": "An error occurred while loading the privacy policy details.",
+    "PRIVACY_DETAIL_NOT_FOUND": "Privacy policy details not found."
+  },
+  "community": {
+    "FAQ_LIST_ERROR": "An error occurred while loading the FAQ list.",
+    "FAQ_CATEGORY_LIST_ERROR": "An error occurred while loading the FAQ category list.",
+    "NOTICE_LIST_ERROR": "An error occurred while loading the notice list.",
+    "NOTICE_COUNT_ERROR": "An error occurred while checking the notice count.",
+    "NOTICE_DETAIL_ERROR": "An error occurred while loading the notice details.",
+    "NOTICE_NOT_FOUND": "The requested notice could not be found."
+  },
+  "land": {
+    "POST_NOT_FOUND": "Post not found or invalid data.",
+    "POST_DETAIL_FETCH_ERROR": "Failed to fetch post detail.",
+    "EXTERNAL_API_ERROR": "External API request failed.",
+    "RECENT_POSTS_FETCH_ERROR": "Failed to fetch recent posts."
+  },
+  "world": {
+    "POST_NOT_FOUND": "Post not found or invalid data.",
+    "POST_DETAIL_FETCH_ERROR": "Failed to fetch post detail.",
+    "EXTERNAL_API_ERROR": "External API request failed.",
+    "RECENT_POSTS_FETCH_ERROR": "Failed to fetch recent posts."
+  },
+  "auth": {
+    "EMAIL_ALREADY_EXISTS": "Email address is already registered.",
+    "REGISTRATION_FAILED": "Registration failed. Please try again later.",
+    "INVALID_CREDENTIALS": "Invalid email or password.",
+    "LOGIN_FAILED": "Login failed. Please try again later.",
+    "TOKEN_REFRESH_FAILED": "Token refresh failed. Please log in again.",
+    "LOGOUT_FAILED": "Logout failed. Please try again later.",
+    "USER_NOT_FOUND": "User not found.",
+    "UNAUTHORIZED": "Authentication required."
+  }
+}

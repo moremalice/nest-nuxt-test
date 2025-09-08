@@ -1,0 +1,34 @@
+{
+  "name": "nest-nuxt-monorepo-application-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "local": "cross-env NODE_ENV=local nuxi dev --dotenv .env.local",
+    "dev": "cross-env NODE_ENV=development nuxi dev --dotenv .env.development",
+    "generate": "nuxi generate --dotenv .env.development",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@intlify/core": "^11.1.9",
+    "@nuxtjs/axios": "^5.13.6",
+    "@nuxtjs/i18n": "^9.5.6",
+    "@pinia/nuxt": "^0.11.1",
+    "@vueuse/core": "^13.5.0",
+    "axios": "^1.10.0",
+    "defu": "^6.1.4",
+    "hls.js": "^1.6.7",
+    "js-yaml": "^4.1.0",
+    "nuxt": "^3.17.7",
+    "nuxt-aos": "^1.2.5",
+    "nuxt-simple-sitemap": "^4.4.1",
+    "swiper": "^11.2.10",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^2.6.2",
+    "cross-env": "^10.0.0"
+  }
+}
