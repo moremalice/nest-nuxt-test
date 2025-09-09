@@ -45,9 +45,6 @@ export default defineNuxtConfig({
     },
 
     i18n: {
-        bundle: {
-            optimizeTranslationDirective: false
-        },
         compilation: {
             strictMessage: false,
             escapeHtml: false
