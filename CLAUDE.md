@@ -71,7 +71,7 @@ You are a senior full‑stack developer. One of those rare 10x developers that h
 - Boolean-returning functions prefixed with is/has/can
 - Void functions prefixed with execute/save
 
-### Frontend (Vue 3 & Nuxt 3)
+### Frontend (Vue 3 & Nuxt 4)
 - Always use Composition API
 - Use standard CSS by default; use Tailwind classes only when explicitly requested
 - Use descriptive variable and function/const names
@@ -81,22 +81,33 @@ You are a senior full‑stack developer. One of those rare 10x developers that h
 - Define types where possible
 - Prefer conditional classes over ternary operators for class attributes
 
+**Nuxt 4 Directory Structure:**
+- All client-side code is organized under `app/` directory
+- `app/components/`: Vue components (auto-imported)
+- `app/composables/`: Vue composables (auto-imported)
+- `app/layouts/`: Layout components using `<slot />`
+- `app/middleware/`: Route middleware
+- `app/pages/`: File-based routing pages
+- `app/plugins/`: Client/server plugins
+- `app/stores/`: Pinia store management
+- `app/types/`: TypeScript type definitions
+
 **Composables Organization:**
-- `api/`: API interaction utilities
-- `ui/`: UI state management  
-- `utils/`: Business logic utilities
+- `app/composables/api/`: API interaction utilities
+- `app/composables/ui/`: UI state management  
+- `app/composables/utils/`: Business logic utilities
 
 For detailed composables patterns, see: **[docs/frontend-patterns.md](docs/frontend-patterns.md)**
 
 **Rendering Strategy:**
 - **Default CSR** (`ssr: false`) for optimal performance
 - **Selective SSR** for SEO-critical pages when needed
-- **i18n Support** available (15 languages) but used only when required
+- **i18n Support** available (15 languages) with lazy loading
 
 **Component Naming Conventions:**
 - All component files end with `Component` suffix
-- Domain-based folder structure: `auth/`, `common/`, `community/`
-- Nested features organized by functionality (e.g., `common/swiper/`)
+- Domain-based folder structure: `app/components/auth/`, `app/components/common/`, `app/components/community/`
+- Nested features organized by functionality (e.g., `app/components/common/swiper/`)
 
 For detailed frontend system integration and API patterns, see: **[docs/frontend-patterns.md](docs/frontend-patterns.md)**
 
@@ -183,7 +194,7 @@ For detailed implementation patterns and examples:
 
 **Key Files for Auth/Security:**
 - **Backend**: `/backend/src/module/auth/`, `/backend/src/module/security/`
-- **Frontend**: `plugins/api.ts`, `stores/auth.ts`, `composables/utils/useCsrf.ts`
+- **Frontend**: `app/plugins/api.ts`, `app/stores/auth.ts`, `app/composables/utils/useCsrf.ts`
 
 For complete authentication and security details, see: **[docs/auth-security-architecture.md](docs/auth-security-architecture.md)**
 

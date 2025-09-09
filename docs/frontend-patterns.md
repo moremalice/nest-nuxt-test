@@ -2,12 +2,12 @@
 
 ## API Plugin & Automatic Loading System
 
-### API Plugin Configuration (`plugins/api.ts`)
+### API Plugin Configuration (`app/plugins/api.ts`)
 
 The frontend uses a centralized API plugin that automatically handles loading states, authentication, and CSRF protection:
 
 ```typescript
-// plugins/api.ts
+// app/plugins/api.ts
 export default defineNuxtPlugin((nuxtApp) => {
   const api = $fetch.create({
     baseURL: useRuntimeConfig().public.NUXT_API_BASE_URL,
@@ -68,7 +68,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
 ### Automatic Loading UI System
 
-**Global Loading State (`composables/ui/useLoadingUI.ts`):**
+**Global Loading State (`app/composables/ui/useLoadingUI.ts`):**
 ```typescript
 const isLoading = ref(false)
 
@@ -84,7 +84,7 @@ export const useLoadingUI = () => {
 }
 ```
 
-**Loading Component (`components/common/LoadingComponent.vue`):**
+**Loading Component (`app/components/common/LoadingComponent.vue`):**
 ```vue
 <template>
   <Teleport to="body">
@@ -106,7 +106,7 @@ const { isLoading } = useLoadingUI()
 
 **Layout Integration:**
 ```vue
-<!-- layouts/default.vue & layouts/policy.vue -->
+<!-- app/layouts/default.vue & app/layouts/policy.vue -->
 <template>
   <div>
     <!-- Page content -->
@@ -122,7 +122,7 @@ const { isLoading } = useLoadingUI()
 
 **No Manual Loading Management Required:**
 ```typescript
-// composables/api/useApi.ts
+// app/composables/api/useApi.ts
 export const useApi = async <T = any>(
   url: string,
   body?: object,
@@ -193,7 +193,7 @@ const fetchData = async () => {
 The frontend uses a unified type system to handle all API responses:
 
 ```typescript
-// composables/utils/apiHelpers.ts
+// app/composables/utils/apiHelpers.ts
 
 // Success response type
 export interface ApiSuccessResponse<T = any> {
@@ -316,7 +316,7 @@ const fetchUser = async (userId: number) => {
 All components follow the `Component` suffix naming convention:
 
 ```
-components/
+app/components/
 ├── auth/
 │   ├── LoginFormComponent.vue
 │   └── RegisterFormComponent.vue
@@ -375,7 +375,7 @@ const handleKeyDown = (event: KeyboardEvent): void => {
 
 ## Composables Pattern
 
-### API Composable (`composables/api/useApi.ts`)
+### API Composable (`app/composables/api/useApi.ts`)
 ```typescript
 // Standard API response types
 interface ApiSuccessResponse<T> { status: 'success'; data: T; }
@@ -389,7 +389,7 @@ const result = await useServerApiGet<ResponseType>('/endpoint');       // SSR GE
 
 ### UI State Composable Pattern
 ```typescript
-// composables/ui/useFeatureUI.ts
+// app/composables/ui/useFeatureUI.ts
 const state = ref(initialValue);
 
 export const useFeatureUI = () => ({
@@ -402,7 +402,7 @@ export const useFeatureUI = () => ({
 ## Store Pattern (Pinia)
 
 ```typescript
-// stores/feature.ts
+// app/stores/feature.ts
 export const useFeatureStore = defineStore('feature', () => {
   const state = ref<FeatureState | null>(null);
   const isLoading = ref<boolean>(false);

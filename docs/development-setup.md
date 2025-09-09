@@ -272,11 +272,11 @@ find . -maxdepth 2 -name "*test*.txt" -delete
 - **Jest** - Testing framework with e2e support
 
 ### Frontend Stack  
-- **Nuxt.js 3** - Vue.js framework with full CSR configuration
-- **Vue 3** - Frontend framework with Composition API
-- **Pinia** - State management with readonly pattern
-- **@nuxtjs/i18n** - Internationalization (15 languages, lazy loading)
-- **Tailwind CSS** - Utility-first CSS framework (configured in nuxt.config.ts)
+- **Nuxt.js 4.1.1** - Vue.js framework with new app/ directory structure and enhanced performance
+- **Vue 3.5.21** - Frontend framework with Composition API and latest optimizations
+- **Pinia 3.0.3** - State management with readonly pattern and improved TypeScript support
+- **@nuxtjs/i18n v10** - Internationalization (15 languages, automatic lazy loading)
+- **Nitro 2.12.4** - Enhanced server engine for better performance
 - **Swiper** - Touch slider component with custom wrapper
 - **Auto-Loading System** - Automatic loading states via API plugin
 
@@ -285,13 +285,13 @@ find . -maxdepth 2 -name "*test*.txt" -delete
 **Frontend Loading System:**
 The application features automatic loading state management:
 
-1. **API Plugin Integration** (`plugins/api.ts`):
+1. **API Plugin Integration** (`app/plugins/api.ts`):
    - Automatically shows loading on request start
    - Automatically hides loading on response/error
    - No manual loading state management required
 
-2. **LoadingComponent** (`components/common/LoadingComponent.vue`):
-   - Integrated in all layouts (`default.vue`, `policy.vue`)
+2. **LoadingComponent** (`app/components/common/LoadingComponent.vue`):
+   - Integrated in all layouts (`app/layouts/default.vue`, `app/layouts/policy.vue`)
    - Uses Teleport to render directly to body
    - Connected to global `useLoadingUI()` composable
 
