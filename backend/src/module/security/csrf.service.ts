@@ -134,4 +134,24 @@ export class CsrfService {
       reason: this.reason,
     };
   }
+
+  // 모바일 클라이언트 체크
+  shouldSkipCsrf(req: Request): boolean {
+    // 1. Check X-Client-Type header
+    const clientTypeHeader = req.headers['x-client-type'] as string;
+    if (clientTypeHeader?.toLowerCase().trim() === 'mobile') {
+      return true;
+    }
+
+    // 2. Check User-Agent for mobile app patterns
+    const userAgent = req.headers['user-agent']?.toLowerCase() || '';
+    const mobilePatterns = [
+      'ios-app', 'android-app', 'mobile-app',
+      'react-native', 'flutter', 'xamarin', 'cordova', 'phonegap',
+      'expo', 'capacitor',
+      'okhttp', 'alamofire', 'retrofit',
+    ];
+    
+    return mobilePatterns.some(pattern => userAgent.includes(pattern));
+  }
 }

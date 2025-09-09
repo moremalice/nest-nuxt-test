@@ -32,8 +32,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  // CSRF protection with mobile client detection
   const csrfService = app.get<CsrfService>(CsrfService);
-  app.use(csrfService.protection);
+  app.use((req: any, res: any, next: any) => {
+    // Skip CSRF for mobile clients
+    if (csrfService.shouldSkipCsrf(req)) {
+      res.setHeader('X-CSRF-Skipped', 'mobile-client');
+      return next();
+    }
+    
+    // Apply CSRF protection for web clients
+    const protection = csrfService.protection;
+    protection(req, res, next);
+  });
 
   app.useGlobalPipes(new CustomValidationPipe());
   app.useGlobalFilters(new HttpExceptionFilter(configService));

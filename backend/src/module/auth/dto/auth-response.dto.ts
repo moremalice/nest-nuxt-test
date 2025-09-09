@@ -1,29 +1,6 @@
 // backend/src/module/auth/dto/auth-response.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 
-export class AuthResponseDto {
-  @ApiProperty({ description: 'JWT access token' })
-  accessToken: string;
-
-  @ApiProperty({ description: 'User information' })
-  user: {
-    idx: number;
-    email: string;
-    isActive: boolean;
-  };
-}
-
-export class RefreshResponseDto {
-  @ApiProperty({ description: 'New JWT access token' })
-  accessToken: string;
-
-  @ApiProperty({ description: 'User information' })
-  user: {
-    idx: number;
-    email: string;
-    isActive: boolean;
-  };
-}
 
 export class RegisterResponseDto {
   @ApiProperty({ 
@@ -63,4 +40,64 @@ export class ProfileResponseDto {
     description: 'Account last update date',
   })
   updatedAt: Date;
+}
+
+export class AuthResponseDto {
+  @ApiProperty({ description: 'JWT access token' })
+  accessToken: string;
+
+  @ApiProperty({ 
+    description: 'JWT refresh token (only for mobile clients)',
+    required: false 
+  })
+  refreshToken?: string;
+
+  @ApiProperty({ description: 'User information' })
+  user: {
+    idx: number;
+    email: string;
+    isActive: boolean;
+  };
+}
+
+export class RefreshResponseDto {
+  @ApiProperty({ description: 'New JWT access token' })
+  accessToken: string;
+
+  @ApiProperty({ 
+    description: 'New JWT refresh token (only for mobile clients)',
+    required: false 
+  })
+  refreshToken?: string;
+
+  @ApiProperty({ description: 'User information' })
+  user: {
+    idx: number;
+    email: string;
+    isActive: boolean;
+  };
+}
+
+export class LogoutResponseDto {
+  @ApiProperty({ 
+    description: 'Logout confirmation message (mobile clients only)',
+    required: false 
+  })
+  message?: string;
+
+  @ApiProperty({ 
+    description: 'Logout timestamp (mobile clients only)',
+    required: false 
+  })
+  loggedOutAt?: string;
+
+  @ApiProperty({ 
+    description: 'Token cleanup instructions (mobile clients only)',
+    required: false,
+    type: () => Object
+  })
+  cleanup?: {
+    clearTokens: boolean;
+    tokenTypes: string[];
+  };
 }

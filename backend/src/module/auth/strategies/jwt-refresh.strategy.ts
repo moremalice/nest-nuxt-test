@@ -33,6 +33,9 @@ export class JwtRefreshStrategy extends PassportStrategy(
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
+        // 먼저 Authorization 헤더에서 토큰 추출 시도 (모바일용)
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        // 그 다음 쿠키에서 토큰 추출 시도 (웹용)
         (request: Request) => {
           const refreshCookieName = getRefreshCookieName(configService);
           const token = request?.cookies?.[refreshCookieName];
@@ -50,10 +53,10 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException('Invalid token type');
     }
 
-    // Stateless validation - no database token comparison needed
-    // JWT signature validation is already done by passport-jwt
+    // Stateless 검증 - 데이터베이스 토큰 비교 불필요
+    // JWT 서명 검증은 passport-jwt에서 이미 수행됨
 
-    // Optional: Validate additional claims for enhanced security
+    // 선택사항: 보안 강화를 위한 추가 클레임 검증
     if (payload.iss && payload.iss !== this.configService.get('JWT_ISSUER', 'nest-nuxt-app')) {
       throw new UnauthorizedException('Invalid token issuer');
     }
@@ -62,7 +65,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException('Invalid token audience');
     }
 
-    // Only verify user exists and is active
+    // 사용자 존재 여부 및 활성 상태만 확인
     const user = await this.userRepository.findOne({
       where: { idx: payload.sub, isActive: true },
     });
@@ -71,7 +74,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException('User not found or inactive');
     }
 
-    // Successful refresh
+    // 성공적인 토큰 갱신
     return user;
   }
 }

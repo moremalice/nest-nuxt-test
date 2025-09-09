@@ -1,6 +1,7 @@
 // /backend/src/module/auth/jwt-config.service.ts
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ClientType } from './decorators/client-type.decorator';
 
 @Injectable()
 export class JwtConfigService {
@@ -41,5 +42,25 @@ export class JwtConfigService {
 
   get refreshExpiresIn(): string {
     return this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '12h');
+  }
+
+  get mobileAccessExpiresIn(): string {
+    return this.config.get<string>('JWT_MOBILE_ACCESS_EXPIRES_IN', '30m');
+  }
+
+  get mobileRefreshExpiresIn(): string {
+    return this.config.get<string>('JWT_MOBILE_REFRESH_EXPIRES_IN', '30d');
+  }
+
+  getAccessExpiresIn(clientType: ClientType): string {
+    return clientType === ClientType.MOBILE 
+      ? this.mobileAccessExpiresIn 
+      : this.accessExpiresIn;
+  }
+
+  getRefreshExpiresIn(clientType: ClientType): string {
+    return clientType === ClientType.MOBILE 
+      ? this.mobileRefreshExpiresIn 
+      : this.refreshExpiresIn;
   }
 }

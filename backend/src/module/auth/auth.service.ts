@@ -1,11 +1,5 @@
 // /backend/src/module/auth/auth.service.ts
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import {Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -18,18 +12,30 @@ import { getRefreshCookieName } from './constants/cookies';
 import { User } from './entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { AuthResponseDto, RefreshResponseDto } from './dto/auth-response.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import { JwtConfigService } from './jwt-config.service';
+import { ClientType } from './decorators/client-type.decorator';
 
 // Internal interfaces with refreshToken for controller use
-export interface InternalAuthResponse extends AuthResponseDto {
+export interface InternalAuthResponse {
+  accessToken: string;
   refreshToken: string;
+  user: {
+    idx: number;
+    email: string;
+    isActive: boolean;
+  };
 }
 
-export interface InternalRefreshResponse extends RefreshResponseDto {
+export interface InternalRefreshResponse {
+  accessToken: string;
   refreshToken: string;
+  user: {
+    idx: number;
+    email: string;
+    isActive: boolean;
+  };
 }
 
 // Registration result interface (no tokens)
@@ -97,7 +103,7 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<InternalAuthResponse> {
+  async login(loginDto: LoginDto, clientType: ClientType = ClientType.WEB): Promise<InternalAuthResponse> {
     try {
       const user = await this.userRepository.findOne({
         where: { email: loginDto.email, isActive: true },
@@ -120,7 +126,7 @@ export class AuthService {
         );
       }
 
-      const tokens = await this.generateTokens(user);
+      const tokens = await this.generateTokens(user, clientType);
       // Stateless mode: no database storage needed
 
       return {
@@ -144,9 +150,9 @@ export class AuthService {
     }
   }
 
-  async refresh(user: User): Promise<InternalRefreshResponse> {
+  async refresh(user: User, clientType: ClientType = ClientType.WEB): Promise<InternalRefreshResponse> {
     try {
-      const tokens = await this.generateTokens(user);
+      const tokens = await this.generateTokens(user, clientType);
       // Stateless mode: no database storage needed
 
       return {
@@ -167,9 +173,24 @@ export class AuthService {
     }
   }
 
-  async logout(userId: number): Promise<void> {
+  async logout(userId: number, clientType: ClientType = ClientType.WEB): Promise<{ message: string; loggedOutAt: string; cleanup: { clearTokens: boolean; tokenTypes: string[] } } | void> {
     // Stateless mode: no database cleanup needed
     // Token invalidation happens via cookie removal only
+    
+    // For mobile clients, return detailed logout instructions
+    if (clientType === ClientType.MOBILE) {
+      return {
+        message: 'Successfully logged out',
+        loggedOutAt: new Date().toISOString(),
+        cleanup: {
+          clearTokens: true,
+          tokenTypes: ['access_token', 'refresh_token'],
+        },
+      };
+    }
+    
+    // For web clients, return void (existing behavior)
+    return;
   }
 
   async validateUser(email: string): Promise<User | null> {
@@ -186,6 +207,7 @@ export class AuthService {
 
   async generateTokens(
     user: User,
+    clientType: ClientType = ClientType.WEB,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const now = Math.floor(Date.now() / 1000);
     const issuer = this.configService.get('JWT_ISSUER', 'nest-nuxt-app');
@@ -209,12 +231,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(accessPayload, {
       secret: this.jwtConfig.accessSecret,
-      expiresIn: this.jwtConfig.accessExpiresIn,
+      expiresIn: this.jwtConfig.getAccessExpiresIn(clientType),
     });
 
     const refreshToken = this.jwtService.sign(refreshPayload, {
       secret: this.jwtConfig.refreshSecret,
-      expiresIn: this.jwtConfig.refreshExpiresIn,
+      expiresIn: this.jwtConfig.getRefreshExpiresIn(clientType),
     });
 
     return { accessToken, refreshToken };
@@ -224,16 +246,34 @@ export class AuthService {
     return randomUUID();
   }
 
-  getRefreshTokenCookieOptions() {
+  getRefreshTokenCookieOptions(clientType: ClientType = ClientType.WEB) {
     const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+    
+    // Convert expiration strings to milliseconds for cookie maxAge
+    const expiresIn = this.jwtConfig.getRefreshExpiresIn(clientType);
+    const maxAge = this.parseExpirationToMilliseconds(expiresIn);
+    
     return {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? ('strict' as const) : ('lax' as const),
       path: '/', // __Host- requires path="/"
       // ⚠️ No domain when using __Host- cookie
-      maxAge: 12 * 60 * 60 * 1000, // 12 hours (matches JWT expiration)
+      maxAge,
     };
+  }
+
+  private parseExpirationToMilliseconds(expiresIn: string): number {
+    const time = parseInt(expiresIn.slice(0, -1));
+    const unit = expiresIn.slice(-1);
+    
+    switch (unit) {
+      case 's': return time * 1000;
+      case 'm': return time * 60 * 1000;
+      case 'h': return time * 60 * 60 * 1000;
+      case 'd': return time * 24 * 60 * 60 * 1000;
+      default: return 12 * 60 * 60 * 1000; // fallback to 12 hours
+    }
   }
 
   clearRefreshTokenCookie(response: Response): void {

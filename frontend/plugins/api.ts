@@ -49,10 +49,45 @@ export default defineNuxtPlugin((nuxtApp) => {
         headers.set('Authorization', `Bearer ${token.value}`)
       }
 
-      // CSRF 토큰 주입 (변경 메서드에만)
+      // Check if running in mobile app environment
+      const isMobileApp = () => {
+        // Check for React Native
+        if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
+          return true
+        }
+        
+        // Check for Capacitor
+        if (typeof window !== 'undefined' && (window as any).Capacitor) {
+          return true
+        }
+        
+        // Check for Cordova/PhoneGap
+        if (typeof window !== 'undefined' && ((window as any).cordova || (window as any).phonegap)) {
+          return true
+        }
+        
+        // Check for Flutter web view
+        if (typeof window !== 'undefined' && (window as any).flutter_inappwebview) {
+          return true
+        }
+        
+        // Check environment variable (for SSR/build time detection)
+        if (process.env.MOBILE_APP === 'true') {
+          return true
+        }
+        
+        return false
+      }
+
+      // Set X-Client-Type header for mobile apps
+      if (isMobileApp()) {
+        headers.set('X-Client-Type', 'mobile')
+      }
+
+      // CSRF 토큰 주입 (변경 메서드에만, 모바일 앱 제외)
       const method = (options.method || 'GET').toUpperCase()
       const extendedOpts = options as ExtendedFetchOptions
-      const skipCsrf = extendedOpts.context?.skipCsrf === true
+      const skipCsrf = extendedOpts.context?.skipCsrf === true || isMobileApp()
       
       if (!skipCsrf && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
         try {
