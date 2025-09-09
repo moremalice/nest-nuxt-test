@@ -78,7 +78,6 @@ export default defineNuxtConfig({
             fallbackLocale: 'ko',
             cookieSecure: false,
         },
-        lazy: true,
     },
 
     app: {
