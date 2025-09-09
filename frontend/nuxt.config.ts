@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     modules: [
         '@nuxtjs/i18n',
         '@pinia/nuxt',
-        'nuxt-simple-sitemap',
+        '@nuxtjs/sitemap',
         'nuxt-aos'
     ],
 
