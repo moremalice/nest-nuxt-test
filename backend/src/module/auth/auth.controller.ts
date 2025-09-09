@@ -26,16 +26,19 @@ export class AuthController {
   @Post('register')
   @UseGuards(ProxyAwareThrottlerGuard)
   @Throttle({ register: { ttl: 60000, limit: 5 } }) // 5 attempts per minute
-  @ApiOperation({ summary: 'Register a new user' })
+  @ApiOperation({ 
+    summary: '회원가입',
+    description: '웹: CSRF 토큰 필수 | 모바일: X-Client-Type: mobile'
+  })
   @ApiResponse({
     status: 201,
-    description: 'User registered successfully',
+    description: '회원가입 성공',
     type: RegisterResponseDto,
   })
-  @ApiResponse({ status: 409, description: 'Email already exists' })
-  @ApiResponse({ status: 400, description: 'Registration failed' })
-  @ApiResponse({ status: 429, description: 'Too many registration attempts' })
-  @ApiSecurity('csrf-token')
+  @ApiResponse({ status: 409, description: '이미 존재하는 이메일' })
+  @ApiResponse({ status: 400, description: '잘못된 요청' })
+  @ApiResponse({ status: 403, description: 'CSRF 토큰 오류 (웹 전용)' })
+  @ApiResponse({ status: 429, description: '너무 많은 시도' })
   async register(
     @Body() registerDto: RegisterDto,
   ): Promise<RegisterResponseDto> {
@@ -52,22 +55,36 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(ProxyAwareThrottlerGuard)
   @Throttle({ login: { ttl: 60000, limit: 10 } }) // 10 attempts per minute
-  @ApiOperation({ summary: 'Login user (supports both web and mobile)' })
+  @ApiOperation({ 
+    summary: '로그인',
+    description: '웹: Refresh는 쿠키로 | 모바일: 모든 토큰 Body로 반환'
+  })
   @ApiHeader({
     name: 'X-Client-Type',
-    description: 'Client type (mobile or web)',
+    description: '클라이언트 타입',
     required: false,
     enum: ['mobile', 'web'],
+    example: 'mobile',
   })
   @ApiResponse({
     status: 200,
-    description: 'Login successful (adaptive response based on client type)',
+    description: '로그인 성공',
     type: AuthResponseDto,
+    headers: {
+      'Set-Cookie': {
+        description: 'Refresh 토큰 쿠키 (웹 전용)',
+        schema: { type: 'string' },
+      },
+      'X-CSRF-Skipped': {
+        description: 'CSRF 우회 표시 (모바일)',
+        schema: { type: 'string', example: 'mobile-client' },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 400, description: 'Login failed' })
-  @ApiResponse({ status: 429, description: 'Too many login attempts' })
-  @ApiSecurity('csrf-token')
+  @ApiResponse({ status: 401, description: '잘못된 인증 정보' })
+  @ApiResponse({ status: 400, description: '잘못된 요청' })
+  @ApiResponse({ status: 403, description: 'CSRF 토큰 오류 (웹 전용)' })
+  @ApiResponse({ status: 429, description: '너무 많은 시도' })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -100,22 +117,36 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard, ProxyAwareThrottlerGuard)
   @Throttle({ refresh: { ttl: 60000, limit: 20 } }) // 20 attempts per minute for refresh
-  @ApiOperation({ summary: 'Refresh access token (supports both web and mobile)' })
+  @ApiOperation({ 
+    summary: '토큰 갱신',
+    description: '웹: 쿠키에서 Refresh 읽음 | 모바일: Bearer로 Refresh 전송'
+  })
   @ApiHeader({
     name: 'X-Client-Type',
-    description: 'Client type (mobile or web)',
+    description: '클라이언트 타입',
     required: false,
     enum: ['mobile', 'web'],
+    example: 'mobile',
   })
   @ApiBearerAuth('refresh-token')
   @ApiResponse({
     status: 200,
-    description: 'Token refreshed successfully (adaptive response based on client type)',
+    description: '토큰 갱신 성공',
     type: RefreshResponseDto,
+    headers: {
+      'Set-Cookie': {
+        description: 'New refresh token cookie (web browsers only)',
+        schema: { type: 'string' },
+      },
+      'X-CSRF-Skipped': {
+        description: 'Indicates CSRF was skipped for mobile client',
+        schema: { type: 'string', example: 'mobile-client' },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  @ApiResponse({ status: 429, description: 'Too many refresh attempts' })
-  @ApiSecurity('csrf-token')
+  @ApiResponse({ status: 401, description: '만료된 Refresh 토큰' })
+  @ApiResponse({ status: 403, description: 'CSRF 토큰 오류 (웹 전용)' })
+  @ApiResponse({ status: 429, description: '너무 많은 시도' })
   async refresh(
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
@@ -147,21 +178,35 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Logout user (supports both web and mobile)' })
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ 
+    summary: '로그아웃',
+    description: '웹: 쿠키 삭제 | 모바일: 토큰 삭제 안내'
+  })
   @ApiHeader({
     name: 'X-Client-Type',
-    description: 'Client type (mobile or web)',
+    description: '클라이언트 타입',
     required: false,
     enum: ['mobile', 'web'],
+    example: 'mobile',
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Logout successful (adaptive response based on client type)',
-    type: LogoutResponseDto 
+    description: '로그아웃 성공',
+    type: LogoutResponseDto,
+    headers: {
+      'Set-Cookie': {
+        description: 'Cleared refresh token cookie (web browsers only)',
+        schema: { type: 'string' },
+      },
+      'X-CSRF-Skipped': {
+        description: 'Indicates CSRF was skipped for mobile client',
+        schema: { type: 'string', example: 'mobile-client' },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiSecurity('csrf-token')
+  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiResponse({ status: 403, description: 'CSRF 토큰 오류 (웹 전용)' })
   async logout(
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
@@ -183,14 +228,17 @@ export class AuthController {
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user profile' })
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ 
+    summary: '사용자 프로필 조회',
+    description: 'GET 요청은 CSRF 불필요'
+  })
   @ApiResponse({
     status: 200,
-    description: 'Profile retrieved successfully',
+    description: '프로필 조회 성공',
     type: ProfileResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 401, description: '인증 실패' })
   getProfile(@Req() request: AuthenticatedRequest): {
     user: ProfileResponseDto;
   } {
@@ -199,8 +247,11 @@ export class AuthController {
   }
 
   @Get('test')
-  @ApiOperation({ summary: 'Auth module test endpoint' })
-  @ApiResponse({ status: 200, description: 'Auth module is working' })
+  @ApiOperation({ 
+    summary: '인증 모듈 테스트',
+    description: '상태 확인용 엔드포인트'
+  })
+  @ApiResponse({ status: 200, description: '정상 동작 중' })
   async test(): Promise<{ message: string; timestamp: string }> {
     return {
       message: 'Auth module is working correctly',

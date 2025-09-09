@@ -338,23 +338,43 @@ Mobile applications are **automatically exempt from CSRF validation** because:
 2. **Explicit token handling** - Mobile apps explicitly include tokens in headers
 3. **No same-origin policy** - Mobile apps aren't bound by browser security policies
 
+### Simplified Architecture
+
+The system uses a **backend-centric approach** where:
+- **Frontend (Nuxt)**: Always sends CSRF tokens for all POST/PUT/DELETE requests
+- **Backend (NestJS)**: Decides whether to validate based on client type
+- **Mobile Apps**: Simply add `X-Client-Type: mobile` header
+
+This eliminates code duplication and keeps security logic centralized in the backend.
+
 ### How It Works
 
 The backend automatically detects mobile clients through:
-- `X-Client-Type: mobile` header (highest priority)
+- `X-Client-Type: mobile` header (highest priority, recommended)
 - User-Agent patterns (React Native, Flutter, OkHttp, etc.)
 
 When a mobile client is detected:
 - CSRF validation is skipped
-- Response includes `X-CSRF-Skipped: mobile-client` header
+- Response includes `X-CSRF-Skipped: mobile-client` header for debugging
 - No CSRF token required for POST/PUT/DELETE operations
 
 ### Implementation for Mobile Developers
 
 **React Native:**
 ```javascript
-// Automatically detected via navigator.product
-// No additional configuration needed
+// Option 1: Explicit header (recommended)
+fetch(`${baseUrl}/auth/login`, {
+  method: 'POST',
+  headers: {
+    'X-Client-Type': 'mobile',
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}` // if authenticated
+  },
+  body: JSON.stringify(credentials)
+})
+
+// Option 2: Automatic detection via navigator.product
+// React Native is auto-detected, but explicit header is more reliable
 ```
 
 **Flutter:**
@@ -363,8 +383,9 @@ When a mobile client is detected:
 final response = await http.post(
   Uri.parse('$baseUrl/auth/login'),
   headers: {
-    'X-Client-Type': 'mobile',
+    'X-Client-Type': 'mobile', // Required for CSRF bypass
     'Content-Type': 'application/json',
+    if (accessToken != null) 'Authorization': 'Bearer $accessToken',
   },
   body: jsonEncode(credentials),
 );
@@ -374,19 +395,40 @@ final response = await http.post(
 ```swift
 var request = URLRequest(url: URL(string: "\(baseURL)/auth/login")!)
 request.setValue("mobile", forHTTPHeaderField: "X-Client-Type")
-// CSRF token not needed
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+if let token = accessToken {
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+}
+// CSRF token not needed - backend will skip validation
 ```
 
 **Android (Kotlin):**
 ```kotlin
-// OkHttp is automatically detected
-// Or add explicit header
+// OkHttp example with explicit header
 val request = Request.Builder()
     .url("$baseURL/auth/login")
-    .addHeader("X-Client-Type", "mobile")
+    .addHeader("X-Client-Type", "mobile") // Required for CSRF bypass
+    .addHeader("Content-Type", "application/json")
+    .apply {
+        accessToken?.let { 
+            addHeader("Authorization", "Bearer $it")
+        }
+    }
     .post(body)
     .build()
-// No CSRF token required
+// No CSRF token required - backend handles it
+```
+
+### Web Frontend (Nuxt)
+
+The web frontend no longer needs to detect mobile environments. It simply:
+```javascript
+// Always sends CSRF token for state-changing requests
+// Backend decides whether to validate based on client detection
+if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+  const csrfToken = await getCsrfToken()
+  headers.set('X-CSRF-Token', csrfToken)
+}
 ```
 
 ## Security Considerations
