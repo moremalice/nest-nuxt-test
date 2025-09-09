@@ -148,6 +148,14 @@ const errorResponse = await request(app.getHttpServer())
 expectErrorResponse(errorResponse.body, 'BadRequestException', 'validation');
 ```
 
+**API Development Testing:**
+- Use temporary directories for test artifacts: `mkdir -p ./test-temp && curl -c ./test-temp/cookies.txt`
+- Clean up cookie files after manual API testing: `rm -rf ./test-temp`
+- Follow standard response validation patterns for consistency
+- Test both web client (CSRF + cookies) and mobile client (`X-Client-Type: mobile`) behaviors
+- Verify response format standardization: `{status: 'success'|'error', data: T}`
+- Use `find . -name "cookies*.txt" -delete` to cleanup accidentally created test files
+
 ## Project Overview
 
 This is a **Nest.js + Nuxt.js monorepo** test application.

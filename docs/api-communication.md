@@ -340,4 +340,42 @@ const result = await useServerApiGet<T>('/endpoint')
 - **Teleport rendering**: Loading overlay rendered directly to body
 - **Transition effects**: Smooth show/hide animations
 
+## Testing & Development
+
+### Manual API Testing
+
+When testing API endpoints manually during development:
+
+**Basic Testing Pattern:**
+```bash
+# Use temporary directory for test files
+mkdir -p ./test-temp
+cd ./test-temp
+
+# Test endpoints (avoid hardcoding actual tokens)
+curl -c cookies.txt "http://localhost:3020/csrf/token"
+curl -b cookies.txt -H "X-CSRF-Token: [token-from-response]" -X POST "http://localhost:3020/auth/login"
+
+# Clean up
+cd .. && rm -rf ./test-temp
+```
+
+**Client Type Testing:**
+- Web client: Requires CSRF tokens and uses cookies
+- Mobile client: Add `X-Client-Type: mobile` header to bypass CSRF
+
+### Cleanup Best Practices
+
+Always clean up test artifacts after API testing:
+
+```bash
+# Remove any test files created during development
+find . -maxdepth 2 -name "cookies*.txt" -delete
+find . -maxdepth 2 -name "*test*.txt" -delete
+rm -rf ./test-temp/
+
+# Stop development servers when done
+pkill -f "npm run local" 2>/dev/null || echo "No servers running"
+```
+
 This architecture ensures consistent, reliable, and user-friendly API communication throughout the application.

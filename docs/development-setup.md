@@ -235,6 +235,30 @@ powershell -Command "Test-NetConnection -ComputerName localhost -Port 3000 -Info
 powershell -Command "Test-NetConnection -ComputerName localhost -Port 3020 -InformationLevel Quiet"
 ```
 
+## API Testing During Development
+
+### Temporary File Management
+
+When testing APIs manually, temporary files like cookies may be created. To keep the project clean:
+
+```bash
+# Use temporary directory for test artifacts
+mkdir -p ./test-temp
+curl -c ./test-temp/cookies.txt "http://localhost:3020/csrf/token"
+# ... perform tests ...
+rm -rf ./test-temp
+```
+
+### Post-Testing Cleanup
+
+The `.gitignore` already includes `cookies*.txt` pattern. Always clean up after testing:
+
+```bash
+# Remove any test files created during development
+find . -maxdepth 2 -name "cookies*.txt" -delete
+find . -maxdepth 2 -name "*test*.txt" -delete
+```
+
 ## Key Technologies
 
 ### Backend Stack
