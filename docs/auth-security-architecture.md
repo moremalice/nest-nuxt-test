@@ -25,9 +25,11 @@ This document provides a comprehensive overview of the authentication and securi
 | | `guards/jwt-auth.guard.ts` | Access token guard for protected routes |
 | | `guards/jwt-refresh.guard.ts` | Refresh token guard for token refresh |
 | | `guards/optional-jwt-auth.guard.ts` | Optional authentication guard for mixed access |
-| **security/** | `security.module.ts` | CSRF protection module |
+| | `decorators/client-type.decorator.ts` | Client type detection (Mobile/Web) with priority-based logic |
+| **security/** | `security.module.ts` | CSRF protection module with smart middleware |
 | | `csrf.controller.ts` | CSRF token generation endpoint |
-| | `csrf.service.ts` | Double-submit cookie CSRF implementation |
+| | `csrf.service.ts` | Double-submit cookie CSRF implementation with mobile detection |
+| | `middleware/smart-csrf.middleware.ts` | Intelligent CSRF middleware with mobile bypass |
 
 ### Frontend Files (`/frontend/`)
 
@@ -105,25 +107,68 @@ This document provides a comprehensive overview of the authentication and securi
 
 ## CSRF Protection
 
+### Smart CSRF Architecture
+
+The system implements intelligent CSRF protection that automatically adapts to client types:
+
+**Key Features:**
+- **Mobile Bypass**: Automatic CSRF bypass for mobile applications
+- **Priority-based Detection**: Client type detection through header → User-Agent → default
+- **Centralized Logic**: Shared client detection across all security modules
+- **Fail-safe Design**: Continues operation even if CSRF initialization fails
+
+### Client Type Detection
+
+**Priority Order:**
+1. **X-Client-Type Header** (Recommended): Explicit client identification
+2. **User-Agent Pattern Matching**: Detects mobile frameworks and libraries
+3. **Default to Web**: Unknown clients treated as web browsers
+
+**Supported Mobile Patterns:**
+```typescript
+// Native frameworks
+'react-native', 'flutter', 'xamarin', 'cordova', 'phonegap'
+
+// HTTP libraries
+'okhttp', 'alamofire', 'retrofit', 'ktor', 'dio', 'nsurl'
+
+// Hybrid frameworks
+'expo', 'capacitor', 'ionic'
+```
+
 ### Token Generation & Validation
 
 **Backend (`csrf.service.ts`):**
-- Generates cryptographically secure tokens
-- Validates using double-submit pattern
-- Supports fail-open/fail-closed modes
+- Generates cryptographically secure tokens using double-submit pattern
+- Validates tokens against session cookies
+- Supports fail-open/fail-closed modes via `CSRF_STRICT` environment variable
+- Automatic mobile client detection for CSRF bypass
 
 **Frontend (`useCsrf.ts`):**
 - Auto-refreshes tokens every 25 minutes
 - Retry logic with exponential backoff
-- Token synchronization on page visibility
+- Token synchronization on page visibility changes
+- Improved error detection (403 Forbidden support)
+
+**Smart Middleware (`smart-csrf.middleware.ts`):**
+- Applied globally to all routes
+- Checks client type before applying CSRF protection
+- Sets debugging headers (`X-CSRF-Skipped: mobile-client`)
 
 ### CSRF Token Flow
 
 ```
+Web Client Flow:
 1. Frontend requests CSRF token → GET /csrf/token
 2. Backend generates token + session cookie
 3. Frontend includes token in mutation requests
 4. Backend validates token against session
+
+Mobile Client Flow:
+1. Mobile app sends request with X-Client-Type: mobile
+2. Smart middleware detects mobile client
+3. CSRF validation is skipped automatically
+4. Request proceeds without CSRF token
 ```
 
 ## Auto Token Refresh System
@@ -208,9 +253,9 @@ JWT_REFRESH_EXPIRATION=12h
 
 # CSRF Configuration
 CSRF_SECRET=<random-string>
-CSRF_SESSION_SECRET=<random-string>
-CSRF_DOUBLE_SUBMIT=true
-CSRF_FAIL_MODE=closed  # or 'open'
+CSRF_STRICT=false  # true for fail-closed mode, false for fail-open
+CSRF_COOKIE_MAX_AGE=1500000  # 25 minutes in milliseconds
+CSRF_SIZE=128  # Token size in bits
 
 # Security Settings
 BCRYPT_ROUNDS=10

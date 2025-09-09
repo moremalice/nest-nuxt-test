@@ -13,6 +13,12 @@ export class SmartCsrfMiddleware implements NestMiddleware {
             res.setHeader('X-CSRF-Skipped', 'mobile-client');
             return next();
         }
+        
+        // Ensure cookies object exists for CSRF library
+        if (!(req as any).cookies) {
+            (req as any).cookies = {};
+        }
+        
         // Apply double-csrf protection for web clients
         return this.csrfService.protection(req as any, res as any, next as any);
     }

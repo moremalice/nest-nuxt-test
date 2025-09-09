@@ -7,7 +7,7 @@ export enum ClientType {
     MOBILE = 'mobile',
 }
 
-function determineClientType(request: Request): ClientType {
+export function determineClientType(request: Request): ClientType {
     // 1. 커스텀 헤더 먼저 확인 (최우선)
     const clientTypeHeader = request.headers['x-client-type'] as string;
     if (clientTypeHeader) {
@@ -29,10 +29,13 @@ function determineClientType(request: Request): ClientType {
         'ios-app', 'android-app', 'mobile-app',
         // 크로스플랫폼 프레임워크
         'react-native', 'flutter', 'xamarin', 'cordova', 'phonegap',
-        // 특정 앱 식별자 (여기에 앱 이름을 추가하세요)
+        // 모바일 HTTP 라이브러리
+        'okhttp', 'alamofire', 'retrofit', 'ktor', 'dio',
+        'nsurl', 'afnetworking', 'unirest', 'axios-mobile',
+        // 하이브리드 앱 프레임워크
+        'expo', 'capacitor', 'ionic',
+        // 특정 앱 식별자 (프로젝트에 맞게 수정)
         'nest-nuxt-app', 'your-app-name',
-        // 개발 도구
-        'expo', 'capacitor',
     ];
 
     // 모바일 감지에서 제외할 웹 브라우저 패턴

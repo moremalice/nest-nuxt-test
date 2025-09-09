@@ -27,15 +27,23 @@ export interface ApiContextFlags {
 
 // 에러 판별 유틸리티
 export const isCsrfError = (err: any): boolean => {
+  // Response data structure 확인
   if (err?.data?.status === 'error' && err?.data?.data) {
     const errorName = err.data.data.name?.toLowerCase() || ''
     const errorMessage = err.data.data.message?.toLowerCase() || ''
-    return errorName.includes('csrf') || errorMessage.includes('csrf')
+    return errorName.includes('csrf') || 
+           errorMessage.includes('csrf') ||
+           errorMessage.includes('forbidden') // CSRF 에러는 보통 403으로 오는 경우도 있음
+  }
+  
+  // HTTP status code 확인 (403 Forbidden)
+  if (err?.status === 403 || err?.response?.status === 403) {
+    return true
   }
   
   // 네트워크 에러 등의 경우 메시지로만 판단
   const message = err?.message?.toLowerCase() || ''
-  return message.includes('csrf')
+  return message.includes('csrf') || message.includes('forbidden')
 }
 
 export const isAuthError = (err: any): boolean => {

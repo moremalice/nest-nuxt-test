@@ -8,7 +8,6 @@
     "**/.nuxt/",
     "**/.output/",
     "**/coverage/",
-    "**/.env*",
     "**/tsconfig.tsbuildinfo",
     "**/.vscode/",
     "**/.idea/",

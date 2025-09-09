@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { doubleCsrf, type CsrfRequestMethod } from 'csrf-csrf';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
+import { determineClientType, ClientType } from '../auth/decorators/client-type.decorator';
 
 @Injectable()
 export class CsrfService {
@@ -26,7 +27,7 @@ export class CsrfService {
             this.csrfUtils = doubleCsrf({
                 getSecret: this.getCsrfSecret.bind(this),
                 getCsrfTokenFromRequest: this.getCsrfTokenFromRequest,
-                getSessionIdentifier: this.getSessionIdentifier,
+                getSessionIdentifier: this.getSessionIdentifier.bind(this),
                 cookieName: isProd ? '__Host-csrf-token' : 'csrf-token',
                 cookieOptions: {
                     httpOnly: true,
@@ -85,7 +86,9 @@ export class CsrfService {
     }
 
     private getSessionIdentifier(req: Request): string {
-        const sid = (req as any).cookies?.['csrf-sid'];
+        // Ensure cookies object exists
+        const cookies = (req as any).cookies || {};
+        const sid = cookies['csrf-sid'];
         if (sid) {
             return sid;
         }
@@ -131,21 +134,9 @@ export class CsrfService {
         };
     }
 
-    // centralized mobile client detection
+    // centralized mobile client detection using shared logic
     shouldSkipCsrf(req: Request): boolean {
-        const clientTypeHeader = (req.headers['x-client-type'] as string) || '';
-        if (clientTypeHeader.toLowerCase().trim() === 'mobile') {
-            return true;
-        }
-
-        const userAgent = (req.headers['user-agent'] || '').toLowerCase();
-        const mobilePatterns = [
-            'ios-app', 'android-app', 'mobile-app',
-            'react-native', 'flutter', 'xamarin', 'cordova', 'phonegap',
-            'expo', 'capacitor',
-            'okhttp', 'alamofire', 'retrofit',
-        ];
-
-        return mobilePatterns.some(pattern => userAgent.includes(pattern));
+        const clientType = determineClientType(req);
+        return clientType === ClientType.MOBILE;
     }
 }
