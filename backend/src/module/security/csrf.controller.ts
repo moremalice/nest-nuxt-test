@@ -59,7 +59,7 @@ export class CsrfController {
     async getCsrfToken(
         @Req() req: Request,
         @Res({ passthrough: true }) res: Response,
-    ): Promise<CsrfTokenResponseDto> {
+    ): Promise<{status: 'success'; data: CsrfTokenResponseDto}> {
         try {
             if (!(req as any).cookies?.['csrf-sid']) {
                 const nodeEnv = this.configService.get<string>('NODE_ENV', 'local');
@@ -79,7 +79,10 @@ export class CsrfController {
             }
 
             const token = this.csrfService.generateToken(req, res);
-            return { csrfToken: token };
+            return { 
+                status: 'success',
+                data: { csrfToken: token }
+            };
         } catch (error: any) {
             throw new InternalServerErrorException('Failed to generate CSRF Token');
         }
@@ -88,8 +91,11 @@ export class CsrfController {
     @Get('status')
     @ApiOperation({ summary: 'Get CSRF status', description: 'For monitoring / debugging' })
     @ApiResponse({ status: 200, description: 'Status ok', type: CsrfStatusResponseDto })
-    async getCsrfStatus(): Promise<CsrfStatusResponseDto> {
-        return this.csrfService.status();
+    async getCsrfStatus(): Promise<{status: 'success'; data: CsrfStatusResponseDto}> {
+        return {
+            status: 'success',
+            data: this.csrfService.status(),
+        };
     }
 }
 

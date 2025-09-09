@@ -10,6 +10,22 @@ import { User } from '../src/module/auth/entities/user.entity';
 import { RegisterDto } from '../src/module/auth/dto/register.dto';
 import { CsrfService } from '../src/module/security/csrf.service';
 import { SmartCsrfMiddleware } from '../src/module/security/middleware/smart-csrf.middleware';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
+import { CustomValidationPipe } from '../src/common/pipes/custom-validation.pipe';
+import { ConfigService } from '@nestjs/config';
+import {
+  expectSuccessResponse,
+  expectErrorResponse,
+  expectWebClientResponse,
+  expectMobileClientResponse,
+  StandardSuccessResponse,
+  StandardErrorResponse,
+  UserData,
+  LoginResponseData,
+  CsrfTokenData,
+  generateTestUser,
+  generateWebUserAgent
+} from './test-helpers';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
@@ -25,6 +41,16 @@ describe('Auth (e2e)', () => {
       getRepositoryToken(User, 'test_user_db'),
     );
 
+    // Set test environment variables before initialization
+    process.env.NODE_ENV = 'test';
+    process.env.CSRF_SECRET = 'test-secret-key-for-e2e-tests';
+    process.env.CSRF_STRICT = 'false';
+    
+    // Setup global filters and pipes like in main.ts
+    const configService = app.get(ConfigService);
+    app.useGlobalPipes(new CustomValidationPipe());
+    app.useGlobalFilters(new HttpExceptionFilter(configService));
+    
     // Setup cookie parser and CSRF middleware like in main.ts
     app.use(cookieParser());
     
@@ -57,9 +83,11 @@ describe('Auth (e2e)', () => {
         .get('/auth/test')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('message');
-          expect(res.body).toHaveProperty('timestamp');
-          expect(res.body.message).toBe('Auth module is working correctly');
+          expectSuccessResponse(res.body, (data) => {
+            expect(data).toHaveProperty('message');
+            expect(data).toHaveProperty('timestamp');
+            expect(data.message).toBe('Auth module is working correctly');
+          });
         });
     });
   });
@@ -77,12 +105,14 @@ describe('Auth (e2e)', () => {
         .send(validRegisterDto)
         .expect(201);
 
-      // Register endpoint currently doesn't use TransformInterceptor
-      expect(response.body).toHaveProperty('idx');
-      expect(response.body).toHaveProperty('email');
-      expect(response.body).not.toHaveProperty('accessToken');
-      expect(response.body).not.toHaveProperty('refreshToken');
-      expect(response.body.email).toBe(validRegisterDto.email);
+      expectSuccessResponse<UserData>(response.body, (data) => {
+        expect(data).toHaveProperty('idx');
+        expect(data).toHaveProperty('email');
+        expect(data).not.toHaveProperty('accessToken');
+        expect(data).not.toHaveProperty('refreshToken');
+        expect(data.email).toBe(validRegisterDto.email);
+      });
+      expectMobileClientResponse(response, false); // No CSRF skipped for register endpoint
 
       // Verify user was created in database
       const createdUser = await userRepository.findOne({
@@ -124,10 +154,12 @@ describe('Auth (e2e)', () => {
         .expect(201);
 
       console.log('Web Registration Response:', JSON.stringify(response.body, null, 2));
-      // Register endpoint currently doesn't use TransformInterceptor
-      expect(response.body).toHaveProperty('idx');
-      expect(response.body).toHaveProperty('email');
-      expect(response.body.email).toBe(webUser.email);
+      expectSuccessResponse<UserData>(response.body, (data) => {
+        expect(data).toHaveProperty('idx');
+        expect(data).toHaveProperty('email');
+        expect(data.email).toBe(webUser.email);
+      });
+      expectWebClientResponse(response, false); // No refresh cookie for registration
 
       // Verify user was created in database
       const createdUser = await userRepository.findOne({
@@ -150,11 +182,11 @@ describe('Auth (e2e)', () => {
       // Try to register without CSRF token using browser User-Agent
       const response = await request(app.getHttpServer())
         .post('/auth/register')
-        .set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        .set('User-Agent', generateWebUserAgent())
         .send(webUser)
         .expect(403);
 
-      expect(response.body).toHaveProperty('message');
+      expectErrorResponse(response.body, 'ForbiddenError', 'csrf');
     });
 
     it('should not set refresh token cookie during registration', async () => {
@@ -189,8 +221,7 @@ describe('Auth (e2e)', () => {
         .send(validRegisterDto)
         .expect(409);
 
-      expect(response.body.status).toBe('error');
-      expect(response.body.data).toHaveProperty('message');
+      expectErrorResponse(response.body, 'ConflictException');
     });
 
     it('should return 400 for invalid email', () => {
@@ -203,7 +234,10 @@ describe('Auth (e2e)', () => {
         .post('/auth/register')
         .set('X-Client-Type', 'mobile')
         .send(invalidEmailDto)
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expectErrorResponse(res.body, 'BadRequestException');
+        });
     });
 
     it('should return 400 for short password', () => {
@@ -216,7 +250,10 @@ describe('Auth (e2e)', () => {
         .post('/auth/register')
         .set('X-Client-Type', 'mobile')
         .send(shortPasswordDto)
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expectErrorResponse(res.body, 'BadRequestException', 'Password must be at least');
+        });
     });
 
     it('should return 400 for missing email', () => {
@@ -228,7 +265,10 @@ describe('Auth (e2e)', () => {
         .post('/auth/register')
         .set('X-Client-Type', 'mobile')
         .send(missingEmailDto)
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expectErrorResponse(res.body, 'BadRequestException');
+        });
     });
 
     it('should return 400 for missing password', () => {
@@ -240,7 +280,10 @@ describe('Auth (e2e)', () => {
         .post('/auth/register')
         .set('X-Client-Type', 'mobile')
         .send(missingPasswordDto)
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expectErrorResponse(res.body, 'BadRequestException');
+        });
     });
 
     it('should hash the password in database', async () => {
@@ -285,9 +328,10 @@ describe('Auth (e2e)', () => {
       // First, get CSRF token
       const tokenResponse = await request(app.getHttpServer())
         .get('/csrf/token')
-        .set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        .set('User-Agent', generateWebUserAgent())
         .expect(200);
 
+      expectSuccessResponse<CsrfTokenData>(tokenResponse.body);
       const csrfToken = tokenResponse.body.data.csrfToken;
       const csrfCookies = tokenResponse.headers['set-cookie'];
       
@@ -296,25 +340,19 @@ describe('Auth (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post('/auth/login')
-        .set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        .set('User-Agent', generateWebUserAgent())
         .set('X-CSRF-Token', csrfToken)
         .set('Cookie', cookieStr)
         .send(loginDto)
         .expect(200);
 
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('user');
-      expect(response.body.data).not.toHaveProperty('refreshToken'); // Should be in cookie for web
-      expect(response.body.data.user.email).toBe(loginDto.email);
-
-      // Check refresh token cookie is set for web clients
-      const cookies = response.headers['set-cookie'];
-      expect(cookies).toBeDefined();
-      const cookieArray = Array.isArray(cookies) ? cookies : [cookies];
-      expect(cookieArray.some((cookie: string) => 
-        cookie.includes('ref_token_')
-      )).toBe(true);
+      expectSuccessResponse<LoginResponseData>(response.body, (data) => {
+        expect(data).toHaveProperty('accessToken');
+        expect(data).toHaveProperty('user');
+        expect(data).not.toHaveProperty('refreshToken'); // Should be in cookie for web
+        expect(data.user.email).toBe(loginDto.email);
+      });
+      expectWebClientResponse(response, true); // Should have refresh cookie
     });
 
     it('should return both tokens in body for mobile client', async () => {
@@ -324,14 +362,13 @@ describe('Auth (e2e)', () => {
         .send(loginDto)
         .expect(200);
 
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken'); // Mobile gets refresh token in body
-      expect(response.body.data).toHaveProperty('user');
-      expect(response.body.data.user.email).toBe(loginDto.email);
-
-      // Mobile clients should have CSRF skipped header
-      expect(response.headers['x-csrf-skipped']).toBe('mobile-client');
+      expectSuccessResponse<LoginResponseData>(response.body, (data) => {
+        expect(data).toHaveProperty('accessToken');
+        expect(data).toHaveProperty('refreshToken'); // Mobile gets refresh token in body
+        expect(data).toHaveProperty('user');
+        expect(data.user.email).toBe(loginDto.email);
+      });
+      expectMobileClientResponse(response, true); // Should have CSRF skipped header
     });
 
     it('should return 401 for invalid credentials', async () => {
@@ -346,8 +383,7 @@ describe('Auth (e2e)', () => {
         .send(invalidDto)
         .expect(401);
 
-      expect(response.body.status).toBe('error');
-      expect(response.body.data).toHaveProperty('message');
+      expectErrorResponse(response.body, 'UnauthorizedException');
     });
 
     it('should return 401 for non-existent user', async () => {
@@ -362,8 +398,7 @@ describe('Auth (e2e)', () => {
         .send(nonExistentDto)
         .expect(401);
 
-      expect(response.body.status).toBe('error');
-      expect(response.body.data).toHaveProperty('message');
+      expectErrorResponse(response.body, 'UnauthorizedException');
     });
   });
 

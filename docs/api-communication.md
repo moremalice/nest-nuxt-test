@@ -46,16 +46,58 @@ onRequest: async ({ options }) => {
 4. **Service** - Business logic execution
 5. **TransformInterceptor** - Response standardization
 
+**Standard Controller Pattern:**
 ```typescript
-// Controller returns raw data
+// Standard response - interceptor wraps automatically
 @Get('/users')
 async getUsers(): Promise<User[]> {
   return await this.userService.findAll()
+  // Becomes: { status: 'success', data: User[] }
+}
+```
+
+**Passthrough Pattern (for cookies/headers):**
+```typescript
+// CSRF token endpoint - needs to set cookies AND maintain standard format
+@Get('/csrf/token')
+async getCsrfToken(
+  @Req() req: Request,
+  @Res({ passthrough: true }) res: Response,
+): Promise<CsrfTokenResponseDto> {
+  // Set CSRF session cookie
+  res.cookie('csrf-sid', sessionId, {
+    httpOnly: true,
+    sameSite: 'strict'
+  });
+  
+  const token = this.csrfService.generateToken(req, res);
+  return { csrfToken: token };
+  // Interceptor still wraps: { status: 'success', data: { csrfToken: "..." } }
 }
 
-// TransformInterceptor wraps response
-// Raw data becomes: { status: 'success', data: User[] }
+// Auth login - sets refresh token cookie
+@Post('/auth/login')
+async login(
+  @Body() loginDto: LoginDto,
+  @Res({ passthrough: true }) response: Response,
+): Promise<AuthResponseDto> {
+  const result = await this.authService.login(loginDto);
+  
+  // Set refresh token cookie for web clients
+  response.cookie('refreshToken', result.refreshToken, cookieOptions);
+  
+  return {
+    accessToken: result.accessToken,
+    user: result.user
+  };
+  // Interceptor wraps: { status: 'success', data: { accessToken: "...", user: {...} } }
+}
 ```
+
+**Key Points:**
+- `@Res({ passthrough: true })` allows cookie/header manipulation while preserving interceptor functionality
+- Without passthrough, interceptor is bypassed and manual response formatting is required
+- All responses maintain consistent `{ status: 'success'|'error', data: T }` format
 
 ### 4. Frontend Response Processing
 

@@ -121,6 +121,33 @@ For detailed backend implementation patterns, see: **[docs/backend-patterns.md](
 - Tests follow Arrange‑Act‑Assert pattern
 - Name variables inputX, mockX, actualX, expectedX
 
+**Standard Response Validation in Tests:**
+- Use helper functions from `test/test-helpers.ts` for consistent validation
+- All success responses: `expectSuccessResponse<T>(response.body, dataValidator?)`
+- All error responses: `expectErrorResponse(response.body, expectedErrorName?, expectedMessageContains?)`
+- Client-specific validation: `expectWebClientResponse()` / `expectMobileClientResponse()`
+
+**Test Response Format Examples:**
+```typescript
+// Success response validation
+const response = await request(app.getHttpServer())
+  .get('/endpoint')
+  .expect(200);
+
+expectSuccessResponse<DataType>(response.body, (data) => {
+  expect(data).toHaveProperty('expectedField');
+  expect(data.expectedField).toBe('expectedValue');
+});
+
+// Error response validation
+const errorResponse = await request(app.getHttpServer())
+  .post('/endpoint')
+  .send(invalidData)
+  .expect(400);
+
+expectErrorResponse(errorResponse.body, 'BadRequestException', 'validation');
+```
+
 ## Project Overview
 
 This is a **Nest.js + Nuxt.js monorepo** test application.

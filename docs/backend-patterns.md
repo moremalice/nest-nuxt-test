@@ -247,6 +247,86 @@ export class ExampleDto {
 }
 ```
 
+## Response Standardization Pattern
+
+### TransformInterceptor
+
+The application uses a global `TransformInterceptor` that automatically wraps all successful responses in a standard format:
+
+```typescript
+// All controller responses are automatically transformed:
+// Raw return: { id: 1, name: "John" }
+// Becomes: { status: "success", data: { id: 1, name: "John" } }
+```
+
+**Standard Response Format:**
+```typescript
+// Success Response
+interface SuccessResponse<T> {
+  status: 'success'
+  data: T
+}
+
+// Error Response (from HttpExceptionFilter)
+interface ErrorResponse {
+  status: 'error'
+  data: {
+    name: string    // Exception class name
+    message: string // Localized error message
+  }
+}
+```
+
+### When to Use @Res({ passthrough: true })
+
+**Standard Practice:** Let interceptor handle response formatting
+```typescript
+@Get('/standard')
+async getStandard() {
+  return { message: 'Hello World' };
+  // Becomes: { status: 'success', data: { message: 'Hello World' } }
+}
+```
+
+**Use Passthrough Only When Setting Cookies/Headers:**
+```typescript
+@Post('/login')
+async login(
+  @Body() loginDto: LoginDto,
+  @Res({ passthrough: true }) response: Response,
+): Promise<AuthResponseDto> {
+  const result = await this.authService.login(loginDto);
+  
+  // Set refresh token cookie
+  response.cookie('refreshToken', result.refreshToken, {
+    httpOnly: true,
+    sameSite: 'strict'
+  });
+  
+  // Return data - interceptor will wrap it
+  return {
+    accessToken: result.accessToken,
+    user: result.user
+  };
+  // Final response: { status: 'success', data: { accessToken: "...", user: {...} } }
+}
+```
+
+**Avoid Direct Response Manipulation:**
+```typescript
+// ❌ Don't do this - bypasses interceptor
+@Get('/bad-example')
+async badExample(@Res() response: Response) {
+  response.json({ message: 'Hello' }); // No standard format
+}
+
+// ✅ Do this instead
+@Get('/good-example')
+async goodExample() {
+  return { message: 'Hello' }; // Interceptor wraps automatically
+}
+```
+
 ## Controller Pattern
 
 ```typescript
@@ -260,6 +340,7 @@ export class ExampleController {
   @ApiResponse({ status: 200, description: 'Success' })
   async getExampleList(@Query() query: ExampleDto) {
     return this.exampleService.getExampleList(query);
+    // Interceptor automatically wraps in standard format
   }
 
   @Post()
@@ -267,6 +348,24 @@ export class ExampleController {
   @ApiOperation({ summary: 'Create example' })
   async createExample(@Body() body: CreateExampleDto) {
     return this.exampleService.createExample(body);
+    // Interceptor automatically wraps in standard format
+  }
+
+  @Post('/with-cookie')
+  @ApiOperation({ summary: 'Example with cookie setting' })
+  async exampleWithCookie(
+    @Body() body: CreateExampleDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.exampleService.createExample(body);
+    
+    // Set custom cookie
+    response.cookie('example-session', result.sessionId, {
+      httpOnly: true,
+      maxAge: 3600000
+    });
+    
+    return result; // Still gets wrapped by interceptor
   }
 }
 ```

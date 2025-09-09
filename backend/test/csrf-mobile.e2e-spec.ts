@@ -6,6 +6,17 @@ import * as request from 'supertest';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { CsrfService } from '../src/module/security/csrf.service';
+import {
+  expectSuccessResponse,
+  expectErrorResponse,
+  expectWebClientResponse,
+  expectMobileClientResponse,
+  UserData,
+  CsrfTokenData,
+  CsrfStatusData,
+  generateTestUser,
+  generateWebUserAgent
+} from './test-helpers';
 
 describe('CSRF Mobile Client Bypass (e2e)', () => {
   let app: INestApplication;
@@ -58,9 +69,12 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .send(testUser)
         .expect(201);
 
-      expect(response.headers['x-csrf-skipped']).toBe('mobile-client');
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toBeDefined();
+      expectSuccessResponse<UserData>(response.body, (data) => {
+        expect(data).toHaveProperty('idx');
+        expect(data).toHaveProperty('email');
+        expect(data.email).toBe(testUser.email);
+      });
+      expectMobileClientResponse(response, true); // Should have CSRF skipped
     });
 
     it('should skip CSRF validation for React Native user agent', async () => {
@@ -70,9 +84,13 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .send(testUser)
         .expect(200);
 
-      expect(response.headers['x-csrf-skipped']).toBe('mobile-client');
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toBeDefined();
+      expectSuccessResponse(response.body, (data) => {
+        expect(data).toHaveProperty('accessToken');
+        expect(data).toHaveProperty('refreshToken');
+        expect(data).toHaveProperty('user');
+        expect(data.user.email).toBe(testUser.email);
+      });
+      expectMobileClientResponse(response, true); // Should have CSRF skipped
     });
 
     it('should skip CSRF validation for Flutter app user agent', async () => {
@@ -82,9 +100,13 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .send(testUser)
         .expect(200);
 
-      expect(response.headers['x-csrf-skipped']).toBe('mobile-client');
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toBeDefined();
+      expectSuccessResponse(response.body, (data) => {
+        expect(data).toHaveProperty('accessToken');
+        expect(data).toHaveProperty('refreshToken');
+        expect(data).toHaveProperty('user');
+        expect(data.user.email).toBe(testUser.email);
+      });
+      expectMobileClientResponse(response, true); // Should have CSRF skipped
     });
 
     it('should skip CSRF validation for OkHttp client (Android)', async () => {
@@ -94,18 +116,23 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .send(testUser)
         .expect(200);
 
-      expect(response.headers['x-csrf-skipped']).toBe('mobile-client');
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toBeDefined();
+      expectSuccessResponse(response.body, (data) => {
+        expect(data).toHaveProperty('accessToken');
+        expect(data).toHaveProperty('refreshToken');
+        expect(data).toHaveProperty('user');
+        expect(data.user.email).toBe(testUser.email);
+      });
+      expectMobileClientResponse(response, true); // Should have CSRF skipped
     });
 
     it('should require CSRF token for web browsers', async () => {
       // First, get CSRF token
       const tokenResponse = await request(app.getHttpServer())
         .get('/csrf/token')
-        .set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0')
+        .set('User-Agent', generateWebUserAgent())
         .expect(200);
 
+      expectSuccessResponse<CsrfTokenData>(tokenResponse.body);
       const csrfToken = tokenResponse.body.data.csrfToken;
 
       // Register new user for web test
@@ -115,22 +142,28 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
       };
 
       // Try without CSRF token - should fail
-      await request(app.getHttpServer())
+      const failResponse = await request(app.getHttpServer())
         .post('/auth/register')
-        .set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0')
+        .set('User-Agent', generateWebUserAgent())
         .send(webUser)
         .expect(403); // CSRF validation should fail
+      
+      expectErrorResponse(failResponse.body, 'ForbiddenError', 'csrf');
 
       // Try with CSRF token - should succeed
       const successResponse = await request(app.getHttpServer())
         .post('/auth/register')
-        .set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0')
+        .set('User-Agent', generateWebUserAgent())
         .set('X-CSRF-Token', csrfToken)
         .send(webUser)
         .expect(201);
 
-      expect(successResponse.body.status).toBe('success');
-      expect(successResponse.headers['x-csrf-skipped']).toBeUndefined();
+      expectSuccessResponse<UserData>(successResponse.body, (data) => {
+        expect(data).toHaveProperty('idx');
+        expect(data).toHaveProperty('email');
+        expect(data.email).toBe(webUser.email);
+      });
+      expectWebClientResponse(successResponse, false); // No refresh cookie for registration
     });
 
     it('should handle mixed client type correctly', async () => {
@@ -142,9 +175,13 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .send(testUser)
         .expect(200);
 
-      expect(response.headers['x-csrf-skipped']).toBe('mobile-client');
-      expect(response.body.status).toBe('success');
-      expect(response.body.data).toBeDefined();
+      expectSuccessResponse(response.body, (data) => {
+        expect(data).toHaveProperty('accessToken');
+        expect(data).toHaveProperty('refreshToken');
+        expect(data).toHaveProperty('user');
+        expect(data.user.email).toBe(testUser.email);
+      });
+      expectMobileClientResponse(response, true); // Should have CSRF skipped
     });
   });
 
@@ -155,8 +192,11 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .set('X-Client-Type', 'mobile')
         .expect(200);
 
-      expect(response.body.status).toBe('success');
-      expect(response.body.data.csrfToken).toBeDefined();
+      expectSuccessResponse<CsrfTokenData>(response.body, (data) => {
+        expect(data).toHaveProperty('csrfToken');
+        expect(typeof data.csrfToken).toBe('string');
+        expect(data.csrfToken.length).toBeGreaterThan(0);
+      });
       // Mobile clients can get token but it won't be validated
     });
 
@@ -165,9 +205,12 @@ describe('CSRF Mobile Client Bypass (e2e)', () => {
         .get('/csrf/status')
         .expect(200);
 
-      expect(response.body.status).toBe('success');
-      expect(response.body.data.enabled).toBeDefined();
-      expect(response.body.data.failOpen).toBeDefined();
+      expectSuccessResponse<CsrfStatusData>(response.body, (data) => {
+        expect(data).toHaveProperty('enabled');
+        expect(data).toHaveProperty('failOpen');
+        expect(typeof data.enabled).toBe('boolean');
+        expect(typeof data.failOpen).toBe('boolean');
+      });
     });
   });
 });
