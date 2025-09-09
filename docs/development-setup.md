@@ -14,45 +14,149 @@ nest-nuxt-app-test/
 
 ## Environment Configuration
 
-### Backend Environment Files
-**Environment Loading Priority:** `.env.${NODE_ENV}` → `.env.local` → `.env`
+### Environment Loading Strategy
+**Backend Priority:** `.env.${NODE_ENV}` → `.env.local` → `.env`  
+**Frontend Priority:** Uses Nuxt's runtime config system with `NUXT_PUBLIC_*` prefix
+
+### Backend Environment Variables
 
 **Available Environment Files:**
-- `.env.local` - Local development environment
-- `.env.development` - Development server environment  
-- `.env.production` - Production environment
+- `.env.local` - Local development (NODE_ENV=local)
+- `.env.development` - Development server (NODE_ENV=development)
+- `.env.production` - Production environment (NODE_ENV=production)
 
-**ConfigService Pattern:**
+#### Core Server Configuration
+```bash
+# Server Settings
+NODE_ENV=local|development|production
+PORT=3020
+SERVER_HOST=localhost  # development: your-dev-domain.com, production: api.your-production-domain.com
+
+# Logging Configuration
+LOG_HTTP_BODY=true     # production: false
+LOG_HTTP_MAX=4096      # production: 1024
+```
+
+#### Database Configuration (Triple MySQL Setup)
+```bash
+# Main Database (piki_world)
+DB_WORLD_HOST=database-1.czlviwuaollk.ap-northeast-2.rds.amazonaws.com
+DB_WORLD_PORT=3306
+DB_WORLD_USERNAME=piki_world
+DB_WORLD_PASSWORD=tlrmakcpdls
+DB_WORLD_DATABASE=piki_world
+DB_WORLD_DEV=false
+
+# Place Database (owner_world/piki_place)
+DB_PLACE_HOST=121.182.91.193  # production: database-1.czlviwuaollk.ap-northeast-2.rds.amazonaws.com
+DB_PLACE_PORT=13306           # production: 3306
+DB_PLACE_USERNAME=owner_world # production: piki_place
+DB_PLACE_PASSWORD=tlrmakcpdls
+DB_PLACE_DATABASE=owner_world # production: piki_place
+
+# Test Database
+DB_TEST_USER_HOST=121.182.91.193
+DB_TEST_USER_PORT=13306
+DB_TEST_USER_USERNAME=root
+DB_TEST_USER_PASSWORD=tmvlemghkd
+DB_TEST_USER_DATABASE=nest_test  # development: nest-test
+DB_TEST_USER_DEV=false
+```
+
+#### Security Configuration
+```bash
+# CSRF Protection
+CSRF_SECRET=environment-specific-secret-key
+CSRF_COOKIE_MAX_AGE=1800000  # 30 minutes
+CSRF_SIZE=128
+CSRF_STRICT=false  # production: true
+
+# JWT Authentication
+JWT_ACCESS_SECRET=environment-specific-access-secret
+JWT_REFRESH_SECRET=environment-specific-refresh-secret
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+JWT_ISSUER=nest-nuxt-app-{env}
+JWT_AUDIENCE=nest-nuxt-app-{env}
+
+# JWT Mobile (Extended expiration)
+JWT_MOBILE_ACCESS_EXPIRES_IN=30m
+JWT_MOBILE_REFRESH_EXPIRES_IN=30d  # production: same
+```
+
+#### External Services
+```bash
+# Domain Configuration
+PIKI_DOMAIN=https://marketdev.pikit.space  # production: https://piki.market
+PIKI_TALK_DOMAIN=http://121.182.91.193:36382  # production: https://aritalk.pikiworld.com
+
+# File Management
+FILE_DATA_PATH=/data/
+```
+
+#### Environment-Specific Differences
+**Local vs Development:**
+- `SERVER_HOST`: localhost vs your-dev-domain.com
+- Secrets use shorter, development-friendly values
+
+**Development vs Production:**
+- `LOG_HTTP_BODY`: true → false
+- `LOG_HTTP_MAX`: 4096 → 1024
+- `CSRF_STRICT`: false → true
+- `PIKI_DOMAIN`: marketdev.pikit.space → piki.market
+- `PIKI_TALK_DOMAIN`: HTTP with port → HTTPS domain
+- Database hosts consolidated to single RDS instance
+- Secrets use production-grade 64+ character strings
+
+### Frontend Environment Variables
+
+**Available Environment Files:**
+- `.env.local` - `NUXT_PUBLIC_BASE_URL=http://localhost:3020`
+- `.env.development` - `NUXT_PUBLIC_API_BASE=http://localhost:3020`
+- `.env.production` - `NUXT_PUBLIC_API_BASE=https://pikitalk.com`
+
+#### Core Frontend Configuration
+```bash
+# API Connection (Local)
+NUXT_PUBLIC_BASE_URL=http://localhost:3020
+NUXT_PUBLIC_APP_ENV=local
+
+# API Connection (Development) 
+NUXT_PUBLIC_API_BASE=http://localhost:3020
+NUXT_PUBLIC_APP_ENV=development
+
+# API Connection (Production)
+NUXT_PUBLIC_API_BASE=https://pikitalk.com
+NUXT_PUBLIC_APP_ENV=production
+```
+
+**Runtime Configuration Usage:**
+```typescript
+// nuxt.config.ts - Available in runtime
+runtimeConfig: {
+  public: {
+    apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.NUXT_PUBLIC_BASE_URL,
+    appEnv: process.env.NUXT_PUBLIC_APP_ENV
+  }
+}
+
+// In components/composables
+const { public: { apiBase, appEnv } } = useRuntimeConfig();
+```
+
+### ConfigService Pattern Implementation
+
 The backend uses `@nestjs/config` with factory pattern for type-safe environment variable access:
 
 ```typescript
-// All configurations use ConfigService injection
+// All configurations use ConfigService injection pattern
 export const exampleConfig = {
   factory: (configService: ConfigService) => ({
     port: configService.get<number>('PORT', 3020),
-    nodeEnv: configService.get<string>('NODE_ENV', 'local')
+    nodeEnv: configService.get<string>('NODE_ENV', 'local'),
+    isDevelopment: configService.get<string>('NODE_ENV', 'local') !== 'production'
   })
 };
-```
-
-**Key Environment Variables:**
-- **Server**: `PORT`, `SERVER_HOST`, `NODE_ENV`
-- **Databases**: `DB_WORLD_*`, `DB_PLACE_*`, `DB_TEST_USER_*` (triple MySQL connections)
-- **Security**: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CSRF_SECRET`
-- **External Services**: `PIKI_DOMAIN`, `PIKI_TALK_DOMAIN`
-
-### Frontend Environment Files
-**Runtime Configuration:**
-Frontend uses Nuxt's runtime config with `NUXT_PUBLIC_*` prefix for client-side access:
-
-**Local Development (`.env.local`):**
-```
-NUXT_PUBLIC_BASE_URL=http://localhost:3020
-```
-
-**Development (`.env.development`):**  
-```
-NUXT_PUBLIC_BASE_URL=http://localhost:3020
 ```
 
 **Automatic API Integration:**
@@ -60,6 +164,7 @@ The frontend automatically connects to the backend through the API plugin (`plug
 - Auto-manages loading states for all API calls
 - Handles JWT token injection and refresh
 - Manages CSRF token generation and validation
+- Uses runtime config for dynamic API base URL selection
 
 ## Quick Start Commands
 

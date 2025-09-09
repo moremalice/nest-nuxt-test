@@ -41,15 +41,12 @@ export class AuthController {
     @ApiResponse({ status: 429, description: '너무 많은 시도' })
     async register(
         @Body() registerDto: RegisterDto,
-    ): Promise<{status: 'success'; data: RegisterResponseDto}> {
+    ): Promise<RegisterResponseDto> {
         const result = await this.authService.register(registerDto);
         // 회원가입 성공 시 생성된 사용자 정보 반환
         return {
-            status: 'success',
-            data: {
-                idx: result.user.idx,
-                email: result.user.email,
-            },
+            idx: result.user.idx,
+            email: result.user.email,
         };
     }
 
@@ -91,18 +88,15 @@ export class AuthController {
         @Body() loginDto: LoginDto,
         @Res({ passthrough: true }) response: Response,
         @GetClientType() clientType: ClientType,
-    ): Promise<{status: 'success'; data: AuthResponseDto}> {
+    ): Promise<AuthResponseDto> {
         const result = await this.authService.login(loginDto, clientType);
 
         // 모바일 클라이언트: refresh token을 응답 본문에 반환
         if (clientType === ClientType.MOBILE) {
             return {
-                status: 'success',
-                data: {
-                    accessToken: result.accessToken,
-                    refreshToken: result.refreshToken,
-                    user: result.user,
-                },
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                user: result.user,
             };
         }
 
@@ -113,11 +107,8 @@ export class AuthController {
 
         // 통합 응답 반환 (웹 클라이언트는 refresh token 제외)
         return {
-            status: 'success',
-            data: {
-                accessToken: result.accessToken,
-                user: result.user,
-            },
+            accessToken: result.accessToken,
+            user: result.user,
         };
     }
 
@@ -159,18 +150,15 @@ export class AuthController {
         @Req() request: AuthenticatedRequest,
         @Res({ passthrough: true }) response: Response,
         @GetClientType() clientType: ClientType,
-    ): Promise<{status: 'success'; data: RefreshResponseDto}> {
+    ): Promise<RefreshResponseDto> {
         const result = await this.authService.refresh(request.user, clientType);
 
         // 모바일 클라이언트: 새로운 refresh token을 응답 본문에 반환
         if (clientType === ClientType.MOBILE) {
             return {
-                status: 'success',
-                data: {
-                    accessToken: result.accessToken,
-                    refreshToken: result.refreshToken,
-                    user: result.user,
-                },
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                user: result.user,
             };
         }
 
@@ -181,11 +169,8 @@ export class AuthController {
 
         // 통합 응답 반환 (웹 클라이언트는 refresh token 제외)
         return {
-            status: 'success',
-            data: {
-                accessToken: result.accessToken,
-                user: result.user,
-            },
+            accessToken: result.accessToken,
+            user: result.user,
         };
     }
 
@@ -225,7 +210,7 @@ export class AuthController {
         @Req() request: AuthenticatedRequest,
         @Res({ passthrough: true }) response: Response,
         @GetClientType() clientType: ClientType,
-    ): Promise<{status: 'success'; data: LogoutResponseDto}> {
+    ): Promise<LogoutResponseDto> {
         // 서비스에서 로그아웃 응답 받기 (모바일 전용 또는 void)
         const result = await this.authService.logout(request.user.idx, clientType);
 
@@ -233,10 +218,7 @@ export class AuthController {
         this.authService.clearRefreshTokenCookie(response);
 
         // 통합 응답 반환 (모바일은 상세 응답, 웹은 빈 객체)
-        return {
-            status: 'success',
-            data: result || {},
-        };
+        return result || {};
     }
 
     @Get('profile')
@@ -256,14 +238,10 @@ export class AuthController {
         type: ProfileResponseDto,
     })
     @ApiResponse({ status: 401, description: '인증 실패' })
-    getProfile(@Req() request: AuthenticatedRequest): {
-        status: 'success';
-        data: { user: ProfileResponseDto };
-    } {
+    getProfile(@Req() request: AuthenticatedRequest): { user: ProfileResponseDto } {
         const { password: _, ...userProfile } = request.user;
         return {
-            status: 'success',
-            data: { user: userProfile },
+            user: userProfile,
         };
     }
 
@@ -273,13 +251,10 @@ export class AuthController {
         description: '상태 확인용 엔드포인트'
     })
     @ApiResponse({ status: 200, description: '정상 동작 중' })
-    async test(): Promise<{status: 'success'; data: { message: string; timestamp: string }}> {
+    async test(): Promise<{ message: string; timestamp: string }> {
         return {
-            status: 'success',
-            data: {
-                message: 'Auth module is working correctly',
-                timestamp: new Date().toISOString(),
-            },
+            message: 'Auth module is working correctly',
+            timestamp: new Date().toISOString(),
         };
     }
 }

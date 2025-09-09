@@ -13,7 +13,7 @@ import { SmartCsrfMiddleware } from './middleware/smart-csrf.middleware';
 })
 export class SecurityModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        // Ensure this runs after cookieParser (registered in main.ts)
+        // cookieParser(main.ts에서 등록됨) 이후에 실행되도록 보장
         consumer
             .apply(SmartCsrfMiddleware)
             .forRoutes({ path: '*', method: RequestMethod.ALL });

@@ -15,19 +15,19 @@ import { CsrfService } from './csrf.service';
 class CsrfTokenResponseDto {
     @ApiProperty({
         example: 'csrf_token_example_string',
-        description: 'X-CSRF-Token header value'
+        description: 'X-CSRF-Token 헤더 값'
     })
     csrfToken: string;
 }
 
 class CsrfStatusResponseDto {
-    @ApiProperty({ example: true, description: 'Whether CSRF protection is enabled' })
+    @ApiProperty({ example: true, description: 'CSRF 보호 활성화 여부' })
     enabled: boolean;
 
-    @ApiProperty({ example: true, description: 'Whether service continues on init failure' })
+    @ApiProperty({ example: true, description: '초기화 실패 시 서비스 계속 여부' })
     failOpen: boolean;
 
-    @ApiProperty({ example: '', description: 'Reason when CSRF is disabled' })
+    @ApiProperty({ example: '', description: 'CSRF가 비활성화된 이유' })
     reason: string;
 }
 
@@ -41,25 +41,25 @@ export class CsrfController {
 
     @Get('token')
     @ApiOperation({
-        summary: 'Issue CSRF token',
-        description: 'Web: required for POST/PUT/DELETE | Mobile: not required'
+        summary: 'CSRF Token 발급',
+        description: '웹: POST/PUT/DELETE 시 필수 | 모바일: 불필요'
     })
     @ApiResponse({
         status: 200,
-        description: 'CSRF token issued',
+        description: 'CSRF Token 발급 성공',
         type: CsrfTokenResponseDto,
         headers: {
             'Set-Cookie': {
-                description: 'CSRF session identifier cookie',
+                description: 'CSRF 세션 식별자 쿠키',
                 schema: { type: 'string' },
             },
         },
     })
-    @ApiResponse({ status: 500, description: 'Failed to issue CSRF token' })
+    @ApiResponse({ status: 500, description: 'CSRF Token 발급 실패' })
     async getCsrfToken(
         @Req() req: Request,
         @Res({ passthrough: true }) res: Response,
-    ): Promise<{status: 'success'; data: CsrfTokenResponseDto}> {
+    ): Promise<CsrfTokenResponseDto> {
         try {
             if (!(req as any).cookies?.['csrf-sid']) {
                 const nodeEnv = this.configService.get<string>('NODE_ENV', 'local');
@@ -79,23 +79,16 @@ export class CsrfController {
             }
 
             const token = this.csrfService.generateToken(req, res);
-            return { 
-                status: 'success',
-                data: { csrfToken: token }
-            };
+            return { csrfToken: token };
         } catch (error: any) {
             throw new InternalServerErrorException('Failed to generate CSRF Token');
         }
     }
 
     @Get('status')
-    @ApiOperation({ summary: 'Get CSRF status', description: 'For monitoring / debugging' })
-    @ApiResponse({ status: 200, description: 'Status ok', type: CsrfStatusResponseDto })
-    async getCsrfStatus(): Promise<{status: 'success'; data: CsrfStatusResponseDto}> {
-        return {
-            status: 'success',
-            data: this.csrfService.status(),
-        };
+    @ApiOperation({ summary: 'CSRF 상태 조회', description: '모니터링 / 디버깅용' })
+    @ApiResponse({ status: 200, description: '상태 조회 성공', type: CsrfStatusResponseDto })
+    async getCsrfStatus(): Promise<CsrfStatusResponseDto> {
+        return this.csrfService.status();
     }
 }
-

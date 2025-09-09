@@ -134,7 +134,7 @@ export class CsrfService {
         };
     }
 
-    // centralized mobile client detection using shared logic
+    // 공유 로직을 사용한 중앙집중식 모바일 클라이언트 감지
     shouldSkipCsrf(req: Request): boolean {
         const clientType = determineClientType(req);
         return clientType === ClientType.MOBILE;
