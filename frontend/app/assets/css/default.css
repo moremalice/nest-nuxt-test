@@ -298,7 +298,7 @@ input:-moz-input-placeholder{color:#999;}
 .btn_white_line_wide96:hover {border-color:var(--dark);}
 .btn_white_normal {height:56px; line-height: 56px; padding:0 30px; border-radius: 40px; background:rgba(255,255,255,0.08); border:1px solid var(--white); color:var(--white); transition: 0.3s}
 .btn_white_normal:hover {background:rgba(255,255,255,0.24);}
-.btn_white_normal i.icon_arrow {display:inline-block;width:24px; height:24px; margin-left:93px; background:url("/img/content/piki/icon_arrow_right.svg")no-repeat center; background-size: 20px; filter: brightness(10); margin-bottom:5px;}
+.btn_white_normal i.icon_arrow {display:inline-block;width:24px; height:24px; margin-left:93px; background:url("/images/content/piki/icon_arrow_right.svg")no-repeat center; background-size: 20px; filter: brightness(10); margin-bottom:5px;}
 
 @media screen and (max-width:1240px){
 	.btn_white_line_wide96 {width:96px;}

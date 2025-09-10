@@ -79,7 +79,7 @@ button#BtnGnbM.close span:before {  transform: rotate(-90deg);  transition: 0.3s
 	header #nav .nav_wrap ul.depth1{flex-direction: column; gap:10px;}
 	header #nav .nav_wrap ul.depth1 > li > a {display:flex; height:48px;padding:0 20px; align-items: center; justify-content: space-between; color:var(--white);background:rgba(255,255,255,0.04); border-radius: 16px}
 	header #nav .nav_wrap ul.depth1 > li:hover > a {color:var(--white);}
-	header #nav .nav_wrap ul.depth1 > li > a:after {content:''; width:24px; height:24px; background:url("/img/common/icon_arrow_down.png")no-repeat center;}
+	header #nav .nav_wrap ul.depth1 > li > a:after {content:''; width:24px; height:24px; background:url("~/assets/images/common/icon_arrow_down.png")no-repeat center;}
 
 	header #nav .nav_wrap ul.depth1 > li.on > a:after {transform: rotate(180deg)}
 	header #nav .nav_wrap ul.depth2 {position: relative; background: transparent; border:none; padding:4px 0 10px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease;}

@@ -35,8 +35,8 @@ const slides = computed(() => [
     title: t('p_talk_06_1_1'),
     mainText: t('p_talk_06_1_2'),
     subText: t('p_talk_06_1_3'),
-    image: '/img/content/talk/talk_slide_01.png',
-    icon: '/img/content/talk/icon_slide_log_talk.png',
+    image: '/images/content/talk/talk_slide_01.png',
+    icon: '/images/content/talk/icon_slide_log_talk.png',
     dark: false
   },
   {
@@ -44,8 +44,8 @@ const slides = computed(() => [
     title: t('p_talk_06_2_1'),
     mainText: t('p_talk_06_2_2'),
     subText: t('p_talk_06_2_3'),
-    image: '/img/content/talk/talk_slide_02.png',
-    icon: '/img/content/talk/icon_slide_log_talk2.png',
+    image: '/images/content/talk/talk_slide_02.png',
+    icon: '/images/content/talk/icon_slide_log_talk2.png',
     dark: false
   },
   {
@@ -53,8 +53,8 @@ const slides = computed(() => [
     title: t('p_talk_06_3_1'),
     mainText: t('p_talk_06_3_2'),
     subText: t('p_talk_06_3_3'),
-    image: '/img/content/talk/talk_slide_03.png',
-    icon: '/img/content/talk/icon_slide_log_talk3.png',
+    image: '/images/content/talk/talk_slide_03.png',
+    icon: '/images/content/talk/icon_slide_log_talk3.png',
     dark: true
   }
 ])

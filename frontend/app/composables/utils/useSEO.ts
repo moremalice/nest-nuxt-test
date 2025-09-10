@@ -11,7 +11,7 @@ const SEO_CONSTANTS = {
     ogDescription:
         'A trustworthy messenger, secure with no server records, and the ability to store conversations on the blockchain, ensuring they last forever!',
     // 기본값은 상대 경로이지만, 아래 toAbsolute()로 항상 절대 URL로 변환해 사용함
-    ogImage: '/img/common/Pikibrand_preview.png',
+    ogImage: '/images/Pikibrand_preview.png',
     // 도메인은 www 없이 한쪽으로 통일
     ogUrl: 'https://pikitalk.com',
     keywords: 'pikitalk, blockchain, secure chat, messenger, privacy',
@@ -25,7 +25,7 @@ const SEO_CONSTANTS = {
 const CANONICAL_HOST = 'https://pikitalk.com' // ← 반드시 한쪽으로 통일
 
 const toAbsolute = (src?: string) => {
-    const fallback = `${CANONICAL_HOST}/img/common/Pikibrand_preview.png`
+    const fallback = `${CANONICAL_HOST}/images/Pikibrand_preview.png`
     if (!src) return fallback
     return /^https?:\/\//i.test(src) ? src : new URL(src, CANONICAL_HOST).toString()
 }

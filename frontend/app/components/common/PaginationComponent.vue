@@ -135,10 +135,10 @@ const visiblePages = computed(() => {
 .pagination .btn_arrow { border: 1px solid #e0e0e0; border-radius: 50%; overflow: hidden; background-color: #fff; text-indent: -999px;}
 
 /* 아이콘 배경 (요소 종류와 무관하게 클래스 기준) */
-.pagination .before  { background: url('/img/common/icon-prev.svg')  no-repeat center; }
-.pagination .next    { background: url('/img/common/icon-next.svg')  no-repeat center; }
-.pagination .end     { background: url('/img/common/icon-last.svg')  no-repeat center; }
-.pagination .start   { background: url('/img/common/icon-first.svg') no-repeat center; }
+.pagination .before  { background: url('~/assets/images/common/icon-prev.svg')  no-repeat center; }
+.pagination .next    { background: url('~/assets/images/common/icon-next.svg')  no-repeat center; }
+.pagination .end     { background: url('~/assets/images/common/icon-last.svg')  no-repeat center; }
+.pagination .start   { background: url('~/assets/images/common/icon-first.svg') no-repeat center; }
 
 /* 비활성 상태 (a/span 공통) */
 .pagination .btn_arrow.disabled { pointer-events: none; cursor: default; color: #ccc; background-color: #f5f5f5;border-color: #e0e0e0; }

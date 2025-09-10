@@ -1,10 +1,11 @@
 // frontend/nuxt.config.ts
 
 export default defineNuxtConfig({
+    srcDir: 'app',
     ssr: false,
 
     devtools: {
-        enabled: true,
+        enabled: process.env.NODE_ENV !== 'production',
         timeline: {
             enabled: true
         }
@@ -66,7 +67,7 @@ export default defineNuxtConfig({
             {code: 'zh_s', iso: 'zh-CN', file: 'zh-CN.json'},
             {code: 'zh_t', iso: 'zh-TW', file: 'zh-TW.json'}
         ],
-        langDir: '../locales/',
+        langDir: 'locales',
         defaultLocale: 'ko',
         strategy: 'no_prefix',
 
@@ -84,12 +85,8 @@ export default defineNuxtConfig({
         head: {
             // meta 배열 useSEO.ts에서 관리
             link: [
-                {rel: 'apple-touch-icon', sizes: '57x57', href: '/img/common/favicon.ico'},
-                {rel: 'icon', type: 'image/png', sizes: '57x57', href: '/img/common/favicon.ico'},
-                {rel: 'stylesheet', href: '/css/font.css'},
-                {rel: 'stylesheet', href: '/css/default.css'},
-                {rel: 'stylesheet', href: '/css/common.css'},
-                {rel: 'stylesheet', href: '/css/content.css'},
+                {rel: 'apple-touch-icon', sizes: '57x57', href: '/favicon.ico'},
+                {rel: 'icon', type: 'image/png', sizes: '57x57', href: '/favicon.ico'},
             ],
             script: [
             ]
@@ -97,6 +94,10 @@ export default defineNuxtConfig({
     },
 
     css: [
+        '~/assets/css/font.css',
+        '~/assets/css/default.css',
+        '~/assets/css/common.css',
+        '~/assets/css/content.css',
         'swiper/css',
         'swiper/css/pagination',
         'swiper/css/navigation'

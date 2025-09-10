@@ -78,7 +78,7 @@ const setLanguage = async (langCode: LocaleCode) => {
       <!-- 로고 nuxtlink 대신 a -->
       <h1 id="logo">
         <a href="/" title="main">
-          <img src="/img/common/logo_piki.svg" alt="piki" />
+          <img src="~/assets/images/common/logo_piki.svg" alt="piki" />
         </a>
       </h1>
 
@@ -145,7 +145,7 @@ const setLanguage = async (langCode: LocaleCode) => {
             aria-label="Select language"
             :aria-describedby="'current-language-' + locale"
           >
-            <img src="/img/common/icon_language.svg" alt="" role="presentation" />
+            <img src="~/assets/images/common/icon_language.svg" alt="" role="presentation" />
           </button>
           <div 
             class="list" 

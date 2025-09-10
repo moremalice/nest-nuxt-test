@@ -1,4 +1,4 @@
-# Nuxt 4 Migration Guide (Frontend Only, API Excluded) — nuxt4 branch
+# Nuxt 4 Migration Guide (Frontend Only, API Excluded) — nuxt4 branch (Augmented)
 **Scope**: `frontend/` only. Keep your NestJS API response format (via `http-exception.filter.ts`, `transform.interceptor.ts`) and the current frontend API handling **as-is**.  
 **Goal**: Align with Nuxt 4 standard structure and settings while preserving behavior. Improve performance, security, and DX without breaking API flows.
 
@@ -161,6 +161,90 @@ git grep -n "~/assets/" -- frontend || echo "No assets references found (may be 
 
 ---
 
+### 2.6) **Post‑move required fixes (MUST‑DO)** ✅
+Perform these after moving files so the app actually uses them correctly.
+
+#### A) Register **global CSS** in `nuxt.config.ts`
+```ts
+// frontend/nuxt.config.ts
+export default defineNuxtConfig({
+  srcDir: 'app',
+  css: [
+    // Replace with your real file names under app/assets/css
+    '~/assets/css/common.css',
+    '~/assets/css/default.css',
+    '~/assets/css/content.css',
+    '~/assets/css/font.css',
+    // '~/assets/css/tailwind.css', // if you use Tailwind
+  ],
+})
+```
+
+List the files you have:
+```powershell
+Get-ChildItem -Recurse -File .\frontend\app\assets\css | Select-Object Name,FullName
+```
+
+#### B) Ensure i18n uses **file‑based lazy loading**
+```ts
+// frontend/nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxtjs/i18n'],
+  i18n: {
+    langDir: 'locales', // locales reside in frontend/app/locales
+    locales: [
+      { code: 'ko', name: 'Korean',  file: 'ko.json' },
+      { code: 'en', name: 'English', file: 'en.json' },
+    ],
+    defaultLocale: 'ko',
+    detectBrowserLanguage: { useCookie: true, cookieKey: 'i18n_redirected', redirectOn: 'root' },
+    strategy: 'prefix_and_default',
+  },
+})
+```
+
+#### C) **Path replacements** in code
+> Run these to update imports/URLs in `.vue/.ts/.js/.css/.scss` files.
+
+**PowerShell (Windows)**
+```powershell
+$files = Get-ChildItem .\frontend -Recurse -File -Include *.vue,*.ts,*.js,*.mjs,*.cjs,*.css,*.scss
+
+# 1) UI images from public -> bundled assets
+$pattern = '/img/common/'; $replace = '~/assets/images/common/'
+foreach ($f in $files) { $c = Get-Content $f -Raw; if ($c -match [regex]::Escape($pattern)) { ($c -replace [regex]::Escape($pattern), $replace) | Set-Content $f -Encoding utf8 } }
+
+# 2) Content images remain public
+$pattern = '/img/content/'; $replace = '/images/content/'
+foreach ($f in $files) { $c = Get-Content $f -Raw; if ($c -match [regex]::Escape($pattern)) { ($c -replace [regex]::Escape($pattern), $replace) | Set-Content $f -Encoding utf8 } }
+
+# 3) Webfonts URL
+$pattern = "/css/font/"; $replace = "~/assets/fonts/"
+foreach ($f in $files) { $c = Get-Content $f -Raw; if ($c -match [regex]::Escape($pattern)) { ($c -replace [regex]::Escape($pattern), $replace) | Set-Content $f -Encoding utf8 } }
+
+# 4) Nuxt 4 import base
+$pattern = "~/app/"; $replace = "~/"
+foreach ($f in $files) { $c = Get-Content $f -Raw; if ($c -match [regex]::Escape($pattern)) { ($c -replace [regex]::Escape($pattern), $replace) | Set-Content $f -Encoding utf8 } }
+```
+
+**Bash (WSL/Git Bash)**
+```bash
+find frontend -type f \( -name '*.vue' -o -name '*.ts' -o -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.css' -o -name '*.scss' \) -print0 \
+| xargs -0 sed -i \
+  -e "s|/img/common/|~/assets/images/common/|g" \
+  -e "s|/img/content/|/images/content/|g" \
+  -e "s|/css/font/|~/assets/fonts/|g" \
+  -e "s|~/app/|~/|g"
+```
+
+**Verify**
+```bash
+git grep -nE '["'\'']/(img/common|css/font)/' -- frontend || echo "OK"
+git grep -n "~/app/" -- frontend && echo "Replace ~/app/ with ~/" || echo "OK"
+```
+
+---
+
 ## 3) Plugins / Middleware (SSR-safe)
 - Use `.client.ts` / `.server.ts` suffixes for plugins.
 - Router middleware in `app/middleware/*.ts`; gate browser-only APIs via `import.meta.client`.
@@ -217,23 +301,34 @@ export default defineNuxtConfig({
 
 ---
 
-## 9) Migration order
-1. Branch `nuxt4/structure-align`
-2. Move to `app/` + fix imports
-3. Split plugins by context (SSR-safety)
-4. i18n v10 with file-based locales (no `lazy` option)
-5. `routeRules` for ISR/CSR/cache
-6. Disable DevTools in prod, clean env exposure
-7. E2E/accessibility/perf regression
-8. Merge PR with checklist
+## 9) Migration order (UPDATED)
+1. Branch `nuxt4/structure-align` (or your working branch)  
+2. Move to `app/` + fix imports (`~/app/...` → `~/...`)  
+3. Split plugins by context (SSR-safety)  
+4. **Register global CSS in `nuxt.config.ts`**  
+5. **i18n v10 with file-based locales (`app/locales`, no `lazy`)**  
+6. **Path replacements** (`/img/common` → `~/assets/images/common`, `/img/content` → `/images/content`, `url('/css/font')` → `url('~/assets/fonts')`)  
+7. `routeRules` for ISR/CSR/cache  
+8. Disable DevTools in prod, clean env exposure  
+9. **Local run & bundle check**:  
+   ```bash
+   cd frontend
+   pnpm i   # or npm i / yarn
+   pnpm dev # or npm run dev / yarn dev
+   npx nuxi analyze
+   ```
+10. E2E/accessibility/perf regression  
+11. Merge PR with checklist
 
 ---
 
-## 10) PR Checklist
+## 10) PR Checklist (UPDATED)
 - [ ] `app/` structure complete, no stray dirs left
 - [ ] No `~/app/` imports; use `~/` instead
 - [ ] Plugins have `.client.ts`/`.server.ts`
-- [ ] i18n uses file-based lazy loading (no `lazy` option)
+- [ ] **Global CSS registered** in `nuxt.config.ts`
+- [ ] i18n uses **file-based lazy loading** (`app/locales`, no `lazy` option)
+- [ ] **Path replacements** done for `/img/common`, `/img/content`, `/css/font`, `~/app/`
 - [ ] `routeRules` applied for ISR/CSR/cache
 - [ ] DevTools disabled in prod
 - [ ] Only `NUXT_PUBLIC_*` exposed to client

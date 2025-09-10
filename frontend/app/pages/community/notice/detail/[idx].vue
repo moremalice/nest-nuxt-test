@@ -95,7 +95,7 @@ watch(() => route.params.idx, async (newIdx) => {
           <div v-if="noticeDetail.file_path && noticeDetail.name_origin" class="brd_file">
             <p>
               <i class="icon_file">
-                <img src="/img/common/icon-file.svg" alt="">
+                <img src="~/assets/images/common/icon-file.svg" alt="">
               </i>
               <button type="button" @click="downloadFile">
                 <span>{{ noticeDetail.name_origin }}</span>

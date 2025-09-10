@@ -14,7 +14,7 @@ const downloadPC = (platform: string) => {
     <div class="footer_wrap">
       <div class="footer_logo">
         <NuxtLink to="/" @click="handleLogoClick">
-          <img src="/img/common/logo_piki.svg" alt="piki">
+          <img src="~/assets/images/common/logo_piki.svg" alt="piki">
         </NuxtLink>
       </div>
       <div class="footer_info">
@@ -31,12 +31,12 @@ const downloadPC = (platform: string) => {
           <ul>
             <li>
               <a href="https://www.youtube.com/@Pikitalk" target="_blank">
-                <img src="/img/common/sns_youtube.svg" alt="">
+                <img src="~/assets/images/common/sns_youtube.svg" alt="">
               </a>
             </li>
             <li>
               <a href="https://www.instagram.com/official_pikitalk_global/?hl=en" target="_blank">
-                <img src="/img/common/sns_instagram.svg" alt="">
+                <img src="~/assets/images/common/sns_instagram.svg" alt="">
               </a>
             </li>
           </ul>

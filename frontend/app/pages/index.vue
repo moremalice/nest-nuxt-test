@@ -142,13 +142,13 @@ onMounted(async () => {
         <div class="side_box">
           <div class="side_box_wrap">
             <div class="character">
-              <img src="/img/content/talk/piki_section3_img01.svg" alt="">
+              <img src="/images/content/talk/piki_section3_img01.svg" alt="">
             </div>
             <div class="float_box">
               <div class="sns_banner">
                 <a href="https://www.instagram.com/official_pikitalk_global/?hl=en" target="_blank">
                   <div class="flex_box">
-                    <i><img src="/img/content/talk/icon_insta_w.svg" alt=""></i>
+                    <i><img src="/images/content/talk/icon_insta_w.svg" alt=""></i>
                     <b>{{ t('common_01') }}</b>
                     <p>{{ t('common_02') }}</p>
                   </div>
@@ -156,24 +156,24 @@ onMounted(async () => {
               </div>
               <div class="btn_box">
                 <a :href="t('p_talk_17')" target="_blank" class="btn_white_line_sq96">
-                  <img src="/img/content/piki/icon_apple.svg" alt="">
+                  <img src="/images/content/piki/icon_apple.svg" alt="">
                 </a>
                 <a :href="t('p_talk_15')" target="_blank" class="btn_white_line_sq96">
-                  <img src="/img/content/piki/icon_ggplay.svg" alt="">
+                  <img src="/images/content/piki/icon_ggplay.svg" alt="">
                 </a>
                 <a
                     href="https://pikitalk.com/data/PikiTalk Setup 0.7.0.exe"
                     target="_blank"
                     class="btn_white_line_sq96"
                 >
-                  <img src="/img/content/talk/icon_download_win.svg" alt="">
+                  <img src="/images/content/talk/icon_download_win.svg" alt="">
                 </a>
                 <a
                     @click="downloadMac"
                     class="btn_white_line_sq96 icon_mac icon_mac mac_down_btn"
                     href="javascript:void(0)"
                 >
-                  <img src="/img/content/talk/icon_download_mac.svg" alt="">
+                  <img src="/images/content/talk/icon_download_mac.svg" alt="">
                 </a>
               </div>
             </div>
@@ -192,23 +192,23 @@ onMounted(async () => {
               <div class="left_sub_txt" v-html="t('p_talk_02')"></div>
               <div class="btn_box">
                 <a :href="t('p_talk_17')" target="_blank" class="btn_white_line_sq64">
-                  <img src="/img/content/piki/icon_apple.svg" alt="">
+                  <img src="/images/content/piki/icon_apple.svg" alt="">
                 </a>
                 <a :href="t('p_talk_15')" target="_blank" class="btn_white_line_sq64">
-                  <img src="/img/content/piki/icon_ggplay.svg" alt="">
+                  <img src="/images/content/piki/icon_ggplay.svg" alt="">
                 </a>
                 <a
                     href="https://pikitalk.com/data/PikiTalk Setup 0.7.0.exe"
                     class="btn_layer btn_white_line_sq64 win_down_btn"
                 >
-                  <img src="/img/content/talk/icon_download_win.svg" alt="">
+                  <img src="/images/content/talk/icon_download_win.svg" alt="">
                 </a>
                 <a
                     @click="downloadMac"
                     class="btn_layer btn_white_line_sq64 icon_mac mac_down_btn"
                     href="javascript:void(0)"
                 >
-                  <img src="/img/content/talk/icon_download_mac.svg" alt="">
+                  <img src="/images/content/talk/icon_download_mac.svg" alt="">
                 </a>
               </div>
             </div>
@@ -216,10 +216,10 @@ onMounted(async () => {
           <div class="right_box">
             <div class="right_inner">
               <ul data-aos="fade-up">
-                <li><img src="/img/content/talk/img_talk_01.png" alt=""></li>
+                <li><img src="/images/content/talk/img_talk_01.png" alt=""></li>
               </ul>
               <ul data-aos="fade-up" data-aos-delay="100">
-                <li><img src="/img/content/talk/img_talk_02.png" alt=""></li>
+                <li><img src="/images/content/talk/img_talk_02.png" alt=""></li>
               </ul>
             </div>
           </div>
@@ -238,7 +238,7 @@ onMounted(async () => {
         </div>
         <div class="left_box">
           <div class="img">
-            <span><img src="/img/content/talk/talk_section3_img01.png" alt=""></span>
+            <span><img src="/images/content/talk/talk_section3_img01.png" alt=""></span>
           </div>
         </div>
       </div>
@@ -266,10 +266,10 @@ onMounted(async () => {
             <div data-aos="fade-up" data-aos-delay="300"><div><p v-html="t('p_talk_07_4')"></p></div></div>
           </div>
           <div class="img">
-            <div><img src="/img/content/talk/people01.png" alt=""></div>
-            <div><img src="/img/content/talk/people03.png" alt=""></div>
-            <div><img src="/img/content/talk/people02.png" alt=""></div>
-            <div><img src="/img/content/talk/people04.png" alt=""></div>
+            <div><img src="/images/content/talk/people01.png" alt=""></div>
+            <div><img src="/images/content/talk/people03.png" alt=""></div>
+            <div><img src="/images/content/talk/people02.png" alt=""></div>
+            <div><img src="/images/content/talk/people04.png" alt=""></div>
           </div>
         </div>
       </div>
@@ -295,31 +295,31 @@ onMounted(async () => {
           <p class="sub_text" v-html="t('p_talk_11')"></p>
           <div class="btn_box">
             <a :href="t('p_talk_17')" target="_blank" class="btn_white_line_sq64">
-              <img src="/img/content/piki/icon_apple.svg" alt="">
+              <img src="/images/content/piki/icon_apple.svg" alt="">
             </a>
             <a :href="t('p_talk_15')" target="_blank" class="btn_white_line_sq64">
-              <img src="/img/content/piki/icon_ggplay.svg" alt="">
+              <img src="/images/content/piki/icon_ggplay.svg" alt="">
             </a>
             <a
                 href="https://pikitalk.com/data/PikiTalk Setup 0.7.0.exe"
                 class="btn_layer btn_white_line_sq64"
             >
-              <img src="/img/content/talk/icon_download_win.svg" alt="" :title="t('common_05')">
+              <img src="/images/content/talk/icon_download_win.svg" alt="" :title="t('common_05')">
             </a>
             <a
                 @click="downloadMac"
                 class="btn_layer btn_white_line_sq64 icon_mac"
                 href="javascript:void(0)"
             >
-              <img src="/img/content/talk/icon_download_mac.svg" alt="" :title="t('common_05')">
+              <img src="/images/content/talk/icon_download_mac.svg" alt="" :title="t('common_05')">
             </a>
           </div>
         </div>
         <div class="img_box">
-          <div data-aos="fade-up" data-aos-delay="100"><div><img src="/img/content/talk/pt_img02.png" alt=""></div></div>
-          <div data-aos="fade-up" data-aos-delay="200"><div><img src="/img/content/talk/pt_img01.png" alt=""></div></div>
-          <div data-aos="fade-up" data-aos-delay="300"><div><img src="/img/content/talk/pt_img3.png" alt=""></div></div>
-          <div data-aos="fade-up" data-aos-delay="400"><div><img src="/img/content/talk/pt_img4.png" alt=""></div></div>
+          <div data-aos="fade-up" data-aos-delay="100"><div><img src="/images/content/talk/pt_img02.png" alt=""></div></div>
+          <div data-aos="fade-up" data-aos-delay="200"><div><img src="/images/content/talk/pt_img01.png" alt=""></div></div>
+          <div data-aos="fade-up" data-aos-delay="300"><div><img src="/images/content/talk/pt_img3.png" alt=""></div></div>
+          <div data-aos="fade-up" data-aos-delay="400"><div><img src="/images/content/talk/pt_img4.png" alt=""></div></div>
         </div>
       </div>
     </section>
