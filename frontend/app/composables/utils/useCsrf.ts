@@ -1,30 +1,16 @@
 // composables/utils/useCsrf.ts
+import type { ApiResponse } from './useApiHelper'
 
 interface CsrfTokenData {
     csrfToken: string;
 }
 
-interface ErrorData {
-    name: string;
-    message: string;
-}
-
-interface CsrfApiSuccessResponse {
-    status: 'success';
-    data: CsrfTokenData;
-}
-
-interface CsrfApiErrorResponse {
-    status: 'error';
-    data: ErrorData;
-}
-
-type CsrfApiResponse = CsrfApiSuccessResponse | CsrfApiErrorResponse;
+type CsrfApiResponse = ApiResponse<CsrfTokenData>;
 
 
 const MAX_RETRIES = 3
 
-const clearRefreshTimer = () => {
+const clearRefreshTimer = (): void => {
     const timer = useState<ReturnType<typeof setTimeout> | null>('csrf-refresh-timer', () => null)
     if (timer.value) {
         clearTimeout(timer.value)

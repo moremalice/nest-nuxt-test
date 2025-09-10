@@ -399,6 +399,65 @@ export const useFeatureUI = () => ({
 });
 ```
 
+### CSRF Management Composable (`app/composables/utils/useCsrf.ts`)
+
+**SSR-Safe Global State Management:**
+```typescript
+// Uses useState for SSR-safe global state across requests
+const csrfToken = useState<string | null>('csrf-token', () => null)
+const isTokenLoading = useState<boolean>('csrf-token-loading', () => false)
+
+export const useCsrf = () => ({
+  csrfToken: readonly(csrfToken),
+  isTokenLoading: readonly(isTokenLoading),
+  fetchCsrfToken,      // Fetch new token with retry logic
+  getCsrfToken,        // Get existing or fetch new token
+  refreshCsrfToken,    // Force refresh token
+  isTokenValid,        // Check if token exists
+  clearCsrfToken,      // Clear token and timers
+  clearRefreshTimer,   // Cleanup function
+})
+```
+
+**Key Features:**
+- **SSR-Safe**: Uses `useState` instead of global `ref` for Nuxt 4 compatibility
+- **Auto-Retry**: Exponential backoff on token fetch failures (1s, 2s, 4s)
+- **Event-Driven**: Auto-refreshes on visibility change and online status
+- **Memory Safe**: Proper timer cleanup to prevent memory leaks
+- **Type-Safe**: Full TypeScript support with explicit return types
+
+**Plugin-Based Initialization:**
+```typescript
+// app/plugins/csrf.client.ts - Automatic setup
+export default defineNuxtPlugin(() => {
+  if (!import.meta.client) return
+  
+  onNuxtReady(() => {
+    const { fetchCsrfToken, isTokenValid, refreshCsrfToken } = useCsrf()
+    
+    // Initial token fetch (non-blocking)
+    fetchCsrfToken().catch(() => {})
+    
+    // Event listeners for token management
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('online', handleOnlineReconnect)
+    window.addEventListener('beforeunload', cleanup)
+  })
+})
+```
+
+**Usage in Components:**
+```typescript
+// Automatic usage via API plugin - no manual calls needed
+const result = await useApi('/protected-endpoint', data) // CSRF auto-injected
+
+// Manual usage (rare cases)
+const { csrfToken, isTokenValid, refreshCsrfToken } = useCsrf()
+if (!isTokenValid()) {
+  await refreshCsrfToken()
+}
+```
+
 ## Store Pattern (Pinia)
 
 ```typescript

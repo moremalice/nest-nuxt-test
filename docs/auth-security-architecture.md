@@ -149,6 +149,13 @@ The system implements intelligent CSRF protection that automatically adapts to c
 - Retry logic with exponential backoff
 - Token synchronization on page visibility changes
 - Improved error detection (403 Forbidden support)
+- SSR-safe state management using `useState` composable
+
+**CSRF Plugin (`plugins/csrf.client.ts`):**
+- Automatic initialization using `onNuxtReady` for non-blocking startup
+- Event-driven token management (visibility change, online status)
+- Graceful cleanup on app termination
+- Zero-configuration setup for Nuxt 4
 
 **Smart Middleware (`smart-csrf.middleware.ts`):**
 - Applied globally to all routes
@@ -169,6 +176,45 @@ Mobile Client Flow:
 2. Smart middleware detects mobile client
 3. CSRF validation is skipped automatically
 4. Request proceeds without CSRF token
+```
+
+### CSRF Initialization Pattern (Nuxt 4)
+
+**Plugin-Based Auto-Initialization:**
+```typescript
+// plugins/csrf.client.ts - Zero-configuration setup
+export default defineNuxtPlugin(() => {
+  if (!import.meta.client) return
+  
+  onNuxtReady(() => {
+    const { fetchCsrfToken, isTokenValid, refreshCsrfToken } = useCsrf()
+    
+    // Initial token fetch
+    fetchCsrfToken().catch(() => {})
+    
+    // Event-driven management
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('online', handleOnlineStatus)
+    window.addEventListener('beforeunload', cleanup)
+  })
+})
+```
+
+**Key Improvements from Legacy Pattern:**
+- **SSR-Safe**: Uses `useState` instead of global `ref` variables
+- **Non-blocking**: `onNuxtReady` prevents blocking initial page render
+- **Auto-registration**: No manual initialization calls needed in components
+- **Memory-safe**: Proper cleanup on app termination
+
+**Migration from Legacy:**
+```typescript
+// ❌ Old pattern (removed)
+// app.vue
+const { initializeCsrfManagement } = useCsrf()
+initializeCsrfManagement()
+
+// ✅ New pattern (automatic)
+// No code needed - handled by plugin
 ```
 
 ## Auto Token Refresh System
