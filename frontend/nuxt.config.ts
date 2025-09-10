@@ -67,7 +67,7 @@ export default defineNuxtConfig({
             {code: 'zh_s', iso: 'zh-CN', file: 'zh-CN.json'},
             {code: 'zh_t', iso: 'zh-TW', file: 'zh-TW.json'}
         ],
-        langDir: './app/locales',
+        langDir: 'locales',
         defaultLocale: 'ko',
         strategy: 'no_prefix',
 
