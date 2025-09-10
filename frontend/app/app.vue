@@ -9,8 +9,6 @@
 const route = useRoute()
 const { locales } = useI18n()
 
-/* -------- CSRF -------- */
-initializeCsrfManagement()
 
 /*/!* -------- 다국어 처리시 -------- *!/
 useHead({

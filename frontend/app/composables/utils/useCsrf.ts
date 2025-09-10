@@ -22,21 +22,18 @@ interface CsrfApiErrorResponse {
 type CsrfApiResponse = CsrfApiSuccessResponse | CsrfApiErrorResponse;
 
 
-const csrfToken = ref<string | null>(null)
-const isTokenLoading = ref(false)
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
-let isInitialized = false
-let retryCount = 0
 const MAX_RETRIES = 3
 
 const clearRefreshTimer = () => {
-    if (refreshTimer) {
-        clearTimeout(refreshTimer)
-        refreshTimer = null
+    const timer = useState<ReturnType<typeof setTimeout> | null>('csrf-refresh-timer', () => null)
+    if (timer.value) {
+        clearTimeout(timer.value)
+        timer.value = null
     }
 }
 
 const waitForTokenLoading = async (): Promise<void> => {
+    const isTokenLoading = useState<boolean>('csrf-token-loading', () => false)
     if (!isTokenLoading.value) return
 
     return new Promise(resolve => {
@@ -52,9 +49,13 @@ const waitForTokenLoading = async (): Promise<void> => {
 }
 
 export const fetchCsrfToken = async (currentRetry: number = 0): Promise<string | null> => {
+    const csrfToken = useState<string | null>('csrf-token', () => null)
+    const isTokenLoading = useState<boolean>('csrf-token-loading', () => false)
+    const retryCount = useState<number>('csrf-retry-count', () => 0)
+    
     if (currentRetry >= MAX_RETRIES) {
-        retryCount = 0; // 리셋
-        return null;
+        retryCount.value = 0 // 리셋
+        return null
     }
 
     if (isTokenLoading.value && currentRetry === 0) {
@@ -74,11 +75,12 @@ export const fetchCsrfToken = async (currentRetry: number = 0): Promise<string |
 
         if (response.status === 'success' && response.data?.csrfToken) {
             csrfToken.value = response.data.csrfToken
-            retryCount = 0; // 성공 시 리셋
+            retryCount.value = 0 // 성공 시 리셋
 
             clearRefreshTimer()
 
-            refreshTimer = setTimeout(() => {
+            const timer = useState<ReturnType<typeof setTimeout> | null>('csrf-refresh-timer', () => null)
+            timer.value = setTimeout(() => {
                 clearCsrfToken()
                 fetchCsrfToken()
             }, 25 * 60 * 1000)
@@ -107,6 +109,9 @@ export const fetchCsrfToken = async (currentRetry: number = 0): Promise<string |
 }
 
 export const getCsrfToken = async (): Promise<string | null> => {
+    const csrfToken = useState<string | null>('csrf-token', () => null)
+    const isTokenLoading = useState<boolean>('csrf-token-loading', () => false)
+    
     // 이미 토큰이 있으면 바로 반환
     if (csrfToken.value) {
         return csrfToken.value
@@ -124,11 +129,13 @@ export const getCsrfToken = async (): Promise<string | null> => {
 }
 
 export const clearCsrfToken = () => {
+    const csrfToken = useState<string | null>('csrf-token', () => null)
     csrfToken.value = null
     clearRefreshTimer()
 }
 
 export const isTokenValid = (): boolean => {
+    const csrfToken = useState<string | null>('csrf-token', () => null)
     return csrfToken.value !== null && csrfToken.value !== ''
 }
 
@@ -137,52 +144,18 @@ export const refreshCsrfToken = async (): Promise<string | null> => {
     return await fetchCsrfToken()
 }
 
-// 전역 CSRF 관리 초기화 함수
-export const initializeCsrfManagement = () => {
-    // 중복 초기화 방지
-    if (isInitialized || !import.meta.client) return
-    isInitialized = true
-
-    // 초기 토큰 페치
-    fetchCsrfToken().catch(() => {})
-
-    // 페이지 가시성 변경시 토큰 재검증
-    let lastFetchTime = Date.now()
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            const now = Date.now()
-            // 10분 이상 지났거나 토큰이 유효하지 않으면 갱신
-            if (now - lastFetchTime > 10 * 60 * 1000 || !isTokenValid()) {
-                refreshCsrfToken().then(() => {
-                    lastFetchTime = now
-                }).catch(() => {})
-            }
-        }
-    })
-
-    // 온라인 상태 복구시 토큰 확인
-    window.addEventListener('online', () => {
-        if (!isTokenValid()) {
-            refreshCsrfToken().catch(() => {})
-        }
-    })
-
-    // 앱 종료시 타이머 정리
-    window.addEventListener('beforeunload', () => {
-        clearRefreshTimer()
-    })
-}
-
 // CSRF 관리 정리 함수 (필요시 사용)
 export const cleanupCsrfManagement = () => {
     clearRefreshTimer()
     clearCsrfToken()
-    isInitialized = false
 }
 
-export { waitForTokenLoading, csrfToken, isTokenLoading }
+export { waitForTokenLoading }
 
 export const useCsrf = () => {
+    const csrfToken = useState<string | null>('csrf-token', () => null)
+    const isTokenLoading = useState<boolean>('csrf-token-loading', () => false)
+    
     return {
         csrfToken: readonly(csrfToken),
         isTokenLoading: readonly(isTokenLoading),
@@ -193,7 +166,6 @@ export const useCsrf = () => {
         isTokenValid,
         refreshCsrfToken,
         clearRefreshTimer,
-        initializeCsrfManagement,
         cleanupCsrfManagement
     }
 }
