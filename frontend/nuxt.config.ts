@@ -87,10 +87,10 @@ export default defineNuxtConfig({
 
         // 보안/빌드 설정
         compilation: {
-            // 운영에서 엄격 모드 권장 (HTML 삽입 차단)
-            strictMessage: process.env.NODE_ENV === 'production',
-            // strict를 false로 내려면 escapeHtml은 true 권장
-            escapeHtml: process.env.NODE_ENV === 'production'
+            // 엄격한 보안 모드 - HTML 태그 차단으로 XSS 공격 방지
+            strictMessage: true,
+            // HTML 이스케이프 처리로 보안 강화
+            escapeHtml: true
         },
     },
 

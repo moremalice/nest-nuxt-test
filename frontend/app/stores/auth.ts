@@ -236,6 +236,14 @@ export const useAuthStore = defineStore('auth', () => {
   const initializeAuth = async (): Promise<void> => {
     if (!import.meta.client) return
 
+    // CSRF 토큰을 먼저 준비
+    try {
+      const { getCsrfToken } = useCsrf()
+      await getCsrfToken()
+    } catch (error) {
+      console.warn('Failed to initialize CSRF token:', error)
+    }
+
     // 액세스 토큰이 만료되었거나 만료 임박한 경우에만 갱신
     // 60초 버퍼를 두어 만료 직전 토큰도 갱신
     if (isTokenExpired(accessToken.value, 60)) {

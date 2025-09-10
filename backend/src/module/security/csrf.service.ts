@@ -24,10 +24,11 @@ export class CsrfService {
             String(this.config.get('CSRF_STRICT') ?? 'false') !== 'true';
 
         try {
+            const csrfSecret = this.getCsrfSecret();
             this.csrfUtils = doubleCsrf({
-                getSecret: this.getCsrfSecret.bind(this),
+                getSecret: () => csrfSecret,
                 getCsrfTokenFromRequest: this.getCsrfTokenFromRequest,
-                getSessionIdentifier: this.getSessionIdentifier.bind(this),
+                getSessionIdentifier: this.getSessionIdentifier,
                 cookieName: isProd ? '__Host-csrf-token' : 'csrf-token',
                 cookieOptions: {
                     httpOnly: true,
@@ -61,7 +62,7 @@ export class CsrfService {
         }
     }
 
-    private getCsrfSecret(): string {
+    private getCsrfSecret = (): string => {
         const nodeEnv = this.config.get<string>('NODE_ENV', 'local');
         const isProd = nodeEnv === 'production';
         const secret = this.config.get<string>('CSRF_SECRET');
@@ -85,7 +86,7 @@ export class CsrfService {
         return token;
     }
 
-    private getSessionIdentifier(req: Request): string {
+    private getSessionIdentifier = (req: Request): string => {
         // Ensure cookies object exists
         const cookies = (req as any).cookies || {};
         const sid = cookies['csrf-sid'];

@@ -160,3 +160,8 @@ footer .cpr {padding:40px 0 80px;}
 		transition: none !important;
 	}
 }
+
+/* Utility class for text with line breaks */
+.pre-line {
+	white-space: pre-line;
+}

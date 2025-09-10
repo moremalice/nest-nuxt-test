@@ -188,8 +188,8 @@ onMounted(async () => {
           <div class="left_box" data-aos="fade-up">
             <div class="left_inner">
               <div class="left_tit"><p>The most private messenger</p></div>
-              <div class="left_main_txt" v-html="t('p_talk_01')"></div>
-              <div class="left_sub_txt" v-html="t('p_talk_02')"></div>
+              <div class="left_main_txt pre-line">{{ t('p_talk_01') }}</div>
+              <div class="left_sub_txt pre-line">{{ t('p_talk_02') }}</div>
               <div class="btn_box">
                 <a :href="t('p_talk_17')" target="_blank" class="btn_white_line_sq64">
                   <img src="/images/content/piki/icon_apple.svg" alt="">
@@ -232,8 +232,8 @@ onMounted(async () => {
         <div class="right_box">
           <div class="right_inner">
             <div class="right_tit"><p>The most secure messenger</p></div>
-            <div class="right_main_txt" v-html="t('p_talk_03')"></div>
-            <div class="right_sub_txt" v-html="t('p_talk_04')"></div>
+            <div class="right_main_txt pre-line">{{ t('p_talk_03') }}</div>
+            <div class="right_sub_txt pre-line">{{ t('p_talk_04') }}</div>
           </div>
         </div>
         <div class="left_box">
@@ -247,7 +247,7 @@ onMounted(async () => {
     <section class="section4" id="functions" data-aos="fade-up">
       <div class="inner">
         <div class="title">
-          <p v-html="t('p_talk_05')"></p>
+          <p class="pre-line">{{ t('p_talk_05') }}</p>
         </div>
         <PikiTalkSwiperComponent />
       </div>
@@ -256,14 +256,14 @@ onMounted(async () => {
     <section class="section5">
       <div class="inner">
         <div class="title">
-          <div class="main_text" v-html="t('p_talk_07')"></div>
+          <div class="main_text pre-line">{{ t('p_talk_07') }}</div>
         </div>
         <div class="content_box">
           <div class="chat">
-            <div data-aos="fade-up"><div><p v-html="t('p_talk_07_1')"></p></div></div>
-            <div data-aos="fade-up" data-aos-delay="100"><div><p v-html="t('p_talk_07_2')"></p></div></div>
-            <div data-aos="fade-up" data-aos-delay="200"><div><p v-html="t('p_talk_07_3')"></p></div></div>
-            <div data-aos="fade-up" data-aos-delay="300"><div><p v-html="t('p_talk_07_4')"></p></div></div>
+            <div data-aos="fade-up"><div><p class="pre-line">{{ t('p_talk_07_1') }}</p></div></div>
+            <div data-aos="fade-up" data-aos-delay="100"><div><p class="pre-line">{{ t('p_talk_07_2') }}</p></div></div>
+            <div data-aos="fade-up" data-aos-delay="200"><div><p class="pre-line">{{ t('p_talk_07_3') }}</p></div></div>
+            <div data-aos="fade-up" data-aos-delay="300"><div><p class="pre-line">{{ t('p_talk_07_4') }}</p></div></div>
           </div>
           <div class="img">
             <div><img src="/images/content/talk/people01.png" alt=""></div>
@@ -279,8 +279,8 @@ onMounted(async () => {
       <div class="inner">
         <div class="text_box">
           <div class="sort"><span>For everyone, anytime, anywhere</span></div>
-          <p class="main_text" v-html="t('p_talk_08')"></p>
-          <p class="sub_text" v-html="t('p_talk_09')"></p>
+          <p class="main_text pre-line">{{ t('p_talk_08') }}</p>
+          <p class="sub_text pre-line">{{ t('p_talk_09') }}</p>
         </div>
         <div class="img_box">
           <span><img :src="t('p_talk_16')" alt=""></span>
@@ -291,8 +291,8 @@ onMounted(async () => {
     <section class="section7">
       <div class="inner">
         <div class="title" data-aos="fade-up">
-          <p class="main_text" v-html="t('p_talk_10')"></p>
-          <p class="sub_text" v-html="t('p_talk_11')"></p>
+          <p class="main_text pre-line">{{ t('p_talk_10') }}</p>
+          <p class="sub_text pre-line">{{ t('p_talk_11') }}</p>
           <div class="btn_box">
             <a :href="t('p_talk_17')" target="_blank" class="btn_white_line_sq64">
               <img src="/images/content/piki/icon_apple.svg" alt="">

@@ -53,7 +53,7 @@ const downloadPC = (platform: string) => {
   <LayerModalComponent :visible="activeLayer === 1" @close="closeLayer">
     <!-- 슬롯 콘텐츠 -->
     <h3>{{ t('common_06') }}</h3>
-    <p v-html="t('footer_05')"></p>
+    <p class="pre-line">{{ t('footer_05') }}</p>
     <div class="cert_box">
       <div class="cert_text" ref="adminMail">help@sigmachain.net</div>
       <button class="cert_btn" @click="copyToClipboard('help@sigmachain.net')">{{ t('common_11') }}</button>
@@ -62,7 +62,7 @@ const downloadPC = (platform: string) => {
       <h4>&#8251; {{ t('footer_06') }}</h4>
       <ul>
         <li>{{ t('footer_07') }}</li>
-        <li v-html="t('footer_08')"></li>
+        <li class="pre-line">{{ t('footer_08') }}</li>
         <li>{{ t('footer_09') }}</li>
         <li class="mt10">{{ t('footer_10') }}</li>
       </ul>
@@ -71,7 +71,7 @@ const downloadPC = (platform: string) => {
 
   <LayerModalComponent :visible="activeLayer === 2" @close="closeLayer">
     <h3>{{ t('common_07') }}</h3>
-    <p>{{ t('footer_11') }}</p>
+    <p class="pre-line">{{ t('footer_11') }}</p>
     <div class="cert_box">
       <div class="cert_text" ref="adminMail2">help@sigmachain.net</div>
       <button class="cert_btn" @click="copyToClipboard('help@sigmachain.net')">{{ t('common_11') }}</button>
@@ -79,7 +79,7 @@ const downloadPC = (platform: string) => {
     <div class="info">
       <h4>&#8251; {{ t('footer_06') }}</h4>
       <ul>
-        <li v-html="t('footer_12')"></li>
+        <li class="pre-line">{{ t('footer_12') }}</li>
         <li class="mt10">{{ t('footer_10') }}</li>
       </ul>
     </div>
