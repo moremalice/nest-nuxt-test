@@ -127,6 +127,17 @@ cd frontend && npm run local
 - Use the "kill all Node.js processes" commands above
 - Check task manager (Windows) or activity monitor (macOS) for hidden processes
 
+**'nul' File Creation (Windows Git Bash):**
+If you find a file named `nul` in your frontend directory:
+```bash
+# Remove the file
+rm -f frontend/nul
+
+# This happens when Windows command output gets redirected incorrectly in Git Bash
+# The file is harmless and can be safely deleted
+# To prevent it: Use PowerShell for Windows-specific commands instead of Git Bash
+```
+
 ### Emergency Reset
 
 **Windows:**

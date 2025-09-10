@@ -46,7 +46,7 @@ export default defineNuxtConfig({
     },
 
     i18n: {
-        // ✅ 핵심: i18n 해석 기준 디렉토리를 app으로 변경
+        // i18n 해석 기준 디렉토리를 app으로 변경
         restructureDir: 'app',
 
         // app/locales를 가리키게 됨
@@ -68,7 +68,6 @@ export default defineNuxtConfig({
             {code: 'th', language: 'th-TH', file: 'th.json'},
             {code: 'tr', language: 'tr-TR', file: 'tr.json'},
             {code: 'vi', language: 'vi-VN', file: 'vi.json'},
-            // 중국어 표기는 BCP47 권장 표기 사용 권장 (예: zh-Hans/zh-Hant)
             {code: 'zh_s', language: 'zh-Hans', file: 'zh-CN.json'},
             {code: 'zh_t', language: 'zh-Hant', file: 'zh-TW.json'}
         ],
