@@ -178,6 +178,7 @@ For detailed setup, commands, and architecture overview, see: **[docs/developmen
 
 For detailed implementation patterns and examples:
 - **[docs/development-setup.md](docs/development-setup.md)** - Environment setup, commands, and quick start guide
+- **[docs/port-management.md](docs/port-management.md)** - Port cleanup commands and troubleshooting guide
 - **[docs/frontend-patterns.md](docs/frontend-patterns.md)** - Vue/Nuxt patterns, API plugin, and loading system
 - **[docs/backend-patterns.md](docs/backend-patterns.md)** - NestJS patterns, ConfigService, and database connections
 - **[docs/api-communication.md](docs/api-communication.md)** - Complete API communication flow and data format standards
@@ -221,13 +222,14 @@ For detailed API communication patterns, see: **[docs/api-communication.md](docs
 - **Backend**: 3020 (`cd backend && npm run local`)
 - **Frontend**: 3000 (`cd frontend && npm run local`)
 
-**Quick Port Cleanup:**
-```bash
-# Use automated scripts (recommended)
-powershell -ExecutionPolicy Bypass -File ./cleanup-ports.ps1    # Windows
-./cleanup-ports.sh                                              # Cross-platform
+**Port Cleanup:**
+For detailed port management commands and troubleshooting, see: **[docs/port-management.md](docs/port-management.md)**
 
-# Manual cleanup (PowerShell)
+**Quick Commands:**
+```powershell
+# Windows: Kill Node.js processes
 Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
-netstat -ano | findstr ":3020\|:3000\|:3001"  # Verify ports are free
+
+# Linux/macOS: Kill processes by port
+kill -9 $(lsof -ti :3000 :3020 :3001) 2>/dev/null
 ```

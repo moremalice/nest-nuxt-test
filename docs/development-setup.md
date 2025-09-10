@@ -229,21 +229,10 @@ cd backend && npm run local
 cd frontend && npm run local
 ```
 
-### Port Cleanup
-**Automated (Recommended):**
-```bash
-# Use cleanup scripts from project root
-powershell -ExecutionPolicy Bypass -File ./cleanup-ports.ps1    # Windows
-./cleanup-ports.sh                                              # Cross-platform
-```
+### Server Termination
+**Graceful shutdown:** Use `Ctrl+C` in each terminal
 
-**Manual:**
-```bash
-# Stop servers: Ctrl+C in terminals
-# Force cleanup if needed:
-Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
-netstat -ano | findstr ":3020\|:3000\|:3001"  # Verify ports are free
-```
+**Force cleanup:** See **[docs/port-management.md](docs/port-management.md)** for detailed port cleanup commands and troubleshooting.
 
 ## API Testing During Development
 
