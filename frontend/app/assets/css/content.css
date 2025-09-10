@@ -392,7 +392,7 @@
 .pikitalk .section3 .right_box .right_sub_txt { line-height:var(--line20);}
 .pikitalk .section3 .right_box .btn_box {display:flex; gap:10px; margin-top:64px;}
 .pikitalk .section3 .left_box {position: relative; width:50%;}
-.pikitalk .section3 .left_box .img {background:var(--sub_primary) url("/img/content/talk/talk_section3_bg.png")no-repeat left center; background-size:cover;  border-radius:100px 0 0 100px;}
+.pikitalk .section3 .left_box .img {background:var(--sub_primary) url("/images/content/talk/talk_section3_bg.png")no-repeat left center; background-size:cover;  border-radius:100px 0 0 100px;}
 .pikitalk .section3 .left_box .img span img {transform: translate(-50%, -48px)}
 
 @media all and (max-width:1650px) {
@@ -462,7 +462,7 @@
 .pikitalk .section5 .content_box .chat {display:flex; gap:49px 24px; flex-wrap: wrap; font-size: 20px}
 .pikitalk .section5 .content_box .chat > div {position: relative; width:calc(50% - 12px);}
 .pikitalk .section5 .content_box .chat > div > div {position: relative; width:100%; background:var(--primary_light); border-radius: 24px; padding:36px 30px 36px 40px;}
-.pikitalk .section5 .content_box .chat > div > div:after {content:''; position: absolute; left:24px; bottom:-24px; width:48px; height:48px; background:url("/img/content/talk/img_poly.png")no-repeat center;}
+.pikitalk .section5 .content_box .chat > div > div:after {content:''; position: absolute; left:24px; bottom:-24px; width:48px; height:48px; background:url("/images/content/talk/img_poly.png")no-repeat center;}
 .pikitalk .section5 .content_box .chat > div:nth-child(even) > div {transform: translateY(50px)}
 .pikitalk .section5 .content_box .chat > div:nth-child(even) > div:after {left:auto; right:24px;}
 .pikitalk .section5 .content_box .img {display:flex; justify-content: center; gap:40px;}

@@ -97,10 +97,10 @@ export default defineNuxtConfig({
         '~/assets/css/font.css',
         '~/assets/css/default.css',
         '~/assets/css/common.css',
-        '~/assets/css/content.css',
         'swiper/css',
         'swiper/css/pagination',
-        'swiper/css/navigation'
+        'swiper/css/navigation',
+        '~/assets/css/content.css'
     ],
 
     runtimeConfig: {
