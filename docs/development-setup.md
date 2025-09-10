@@ -220,19 +220,29 @@ cd frontend && npm run build
 
 ## Server Management
 
-### Stopping Servers Safely
-When development servers need to be terminated:
-
+### Development Server Startup
 ```bash
-# Method 1: Use Ctrl+C in terminal (preferred)
-# Press Ctrl+C in the terminal running the server
+# Terminal 1: Backend (Port 3020)
+cd backend && npm run local
 
-# Method 2: Force kill all Node.js processes (most reliable)
-powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
+# Terminal 2: Frontend (Port 3000)  
+cd frontend && npm run local
+```
 
-# Verify ports are free (should return 'False')
-powershell -Command "Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet"
-powershell -Command "Test-NetConnection -ComputerName localhost -Port 3020 -InformationLevel Quiet"
+### Port Cleanup
+**Automated (Recommended):**
+```bash
+# Use cleanup scripts from project root
+powershell -ExecutionPolicy Bypass -File ./cleanup-ports.ps1    # Windows
+./cleanup-ports.sh                                              # Cross-platform
+```
+
+**Manual:**
+```bash
+# Stop servers: Ctrl+C in terminals
+# Force cleanup if needed:
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+netstat -ano | findstr ":3020\|:3000\|:3001"  # Verify ports are free
 ```
 
 ## API Testing During Development

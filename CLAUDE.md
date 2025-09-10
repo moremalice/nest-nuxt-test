@@ -214,3 +214,20 @@ const result = await useServerApiGet<T>('/endpoint');     // SSR-safe GET
 ```
 
 For detailed API communication patterns, see: **[docs/api-communication.md](docs/api-communication.md)**
+
+## Development Port Management
+
+**Standard Ports:**
+- **Backend**: 3020 (`cd backend && npm run local`)
+- **Frontend**: 3000 (`cd frontend && npm run local`)
+
+**Quick Port Cleanup:**
+```bash
+# Use automated scripts (recommended)
+powershell -ExecutionPolicy Bypass -File ./cleanup-ports.ps1    # Windows
+./cleanup-ports.sh                                              # Cross-platform
+
+# Manual cleanup (PowerShell)
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+netstat -ano | findstr ":3020\|:3000\|:3001"  # Verify ports are free
+```

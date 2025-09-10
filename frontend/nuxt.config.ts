@@ -46,28 +46,33 @@ export default defineNuxtConfig({
     },
 
     i18n: {
-        compilation: {
-            strictMessage: false,
-            escapeHtml: false
-        },
-        locales: [
-            {code: 'ko', iso: 'ko-KR', file: 'ko.json'},
-            {code: 'en', iso: 'en-US', file: 'en.json'},
-            {code: 'de', iso: 'de-DE', file: 'de.json'},
-            {code: 'es', iso: 'es-ES', file: 'es.json'},
-            {code: 'fr', iso: 'fr-FR', file: 'fr.json'},
-            {code: 'id', iso: 'id-ID', file: 'id.json'},
-            {code: 'it', iso: 'it-IT', file: 'it.json'},
-            {code: 'ja', iso: 'ja-JP', file: 'ja.json'},
-            {code: 'pt', iso: 'pt-BR', file: 'pt.json'},
-            {code: 'ru', iso: 'ru-RU', file: 'ru.json'},
-            {code: 'th', iso: 'th-TH', file: 'th.json'},
-            {code: 'tr', iso: 'tr-TR', file: 'tr.json'},
-            {code: 'vi', iso: 'vi-VN', file: 'vi.json'},
-            {code: 'zh_s', iso: 'zh-CN', file: 'zh-CN.json'},
-            {code: 'zh_t', iso: 'zh-TW', file: 'zh-TW.json'}
-        ],
+        // ✅ 핵심: i18n 해석 기준 디렉토리를 app으로 변경
+        restructureDir: 'app',
+
+        // app/locales를 가리키게 됨
         langDir: 'locales',
+
+        // (권장) SEO 사용 시 language 키 사용
+        // 기존 iso 대신 language로 변경 예시
+        locales: [
+            {code: 'ko', language: 'ko-KR', file: 'ko.json'},
+            {code: 'en', language: 'en-US', file: 'en.json'},
+            {code: 'de', language: 'de-DE', file: 'de.json'},
+            {code: 'es', language: 'es-ES', file: 'es.json'},
+            {code: 'fr', language: 'fr-FR', file: 'fr.json'},
+            {code: 'id', language: 'id-ID', file: 'id.json'},
+            {code: 'it', language: 'it-IT', file: 'it.json'},
+            {code: 'ja', language: 'ja-JP', file: 'ja.json'},
+            {code: 'pt', language: 'pt-BR', file: 'pt-BR.json'},
+            {code: 'ru', language: 'ru-RU', file: 'ru.json'},
+            {code: 'th', language: 'th-TH', file: 'th.json'},
+            {code: 'tr', language: 'tr-TR', file: 'tr.json'},
+            {code: 'vi', language: 'vi-VN', file: 'vi.json'},
+            // 중국어 표기는 BCP47 권장 표기 사용 권장 (예: zh-Hans/zh-Hant)
+            {code: 'zh_s', language: 'zh-Hans', file: 'zh-CN.json'},
+            {code: 'zh_t', language: 'zh-Hant', file: 'zh-TW.json'}
+        ],
+
         defaultLocale: 'ko',
         strategy: 'no_prefix',
 
@@ -77,7 +82,16 @@ export default defineNuxtConfig({
             redirectOn: 'root',
             alwaysRedirect: false,
             fallbackLocale: 'ko',
-            cookieSecure: false,
+            // 운영 환경에서는 HTTPS 사용 시 true 권장
+            cookieSecure: process.env.NODE_ENV === 'production',
+        },
+
+        // 보안/빌드 설정
+        compilation: {
+            // 운영에서 엄격 모드 권장 (HTML 삽입 차단)
+            strictMessage: process.env.NODE_ENV === 'production',
+            // strict를 false로 내려면 escapeHtml은 true 권장
+            escapeHtml: process.env.NODE_ENV === 'production'
         },
     },
 
