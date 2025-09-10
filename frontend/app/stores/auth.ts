@@ -53,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
       const parts = token.split('.')
       if (parts.length !== 3) return true
       
-      const payload = JSON.parse(atob(parts[1]))
+      const payload = JSON.parse(atob(parts[1] || ''))
       if (!payload.exp || typeof payload.exp !== 'number') return true
       
       // 만료 시간에 버퍼 적용 (기본 30초 전에 만료로 처리)

@@ -1,4 +1,4 @@
-// plugins/session-bus.client.ts
+// frontend/app/plugins/session-bus.client.ts
 import { defineNuxtPlugin } from '#app'
 import { useAuthStore } from '~/stores/auth'
 
@@ -19,10 +19,10 @@ export default defineNuxtPlugin(() => {
 
   // BroadcastChannel 생성
   const channel = new BroadcastChannel('auth-bus')
-  
+
   // 각 탭에 고유 ID 부여 (메시지 루프 방지용)
-  const tabId = crypto.getRandomValues(new Uint32Array(1))[0].toString(16)
-  
+  const tabId = (crypto?.getRandomValues(new Uint32Array(1))[0] ?? Math.floor(Math.random() * 0xffffffff)).toString(16)
+
   // AuthStore 인스턴스
   const auth = useAuthStore()
 

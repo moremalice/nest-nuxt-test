@@ -1,4 +1,4 @@
-// plugins/csrf.client.ts
+// /frontend/app/plugins/csrf.client.ts
 export default defineNuxtPlugin(() => {
   // 클라이언트 환경에서만 실행
   if (!import.meta.client) return

@@ -1,4 +1,4 @@
-// /frontend/plugins/auth.client.ts
+// /frontend/app/plugins/auth.client.ts
 import { defineNuxtPlugin } from '#app'
 import { useAuthStore } from '~/stores/auth'
 

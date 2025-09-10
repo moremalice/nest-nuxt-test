@@ -1,4 +1,4 @@
-// /frontend/plugins/api.ts
+// /frontend/app/plugins/api.ts
 import { storeToRefs } from 'pinia'
 import type { $Fetch } from 'ofetch'
 import { isCsrfError } from '~/composables/utils/useApiHelper'
