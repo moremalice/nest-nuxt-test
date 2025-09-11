@@ -10,13 +10,18 @@ export default defineNuxtPlugin(async () => {
 
   const authStore = useAuthStore()
   
-  // 스마트 토큰 갱신: initializeAuth를 호출하여 필요한 경우에만 갱신
-  // 토큰이 유효하면 갱신하지 않아 서버 부하 감소
+  // 최소한의 초기화: CSRF 토큰만 준비하고 JWT는 필요 시에만 갱신
+  // 앱 시작 시 불필요한 refresh token 요청 방지
   try {
-    await authStore.initializeAuth()
-    // initializeAuth가 내부적으로 토큰 만료를 체크하고 필요시만 갱신
+    // 기존 토큰이 있고 유효한 경우에만 초기화 수행
+    if (authStore.token && !authStore.isAuthenticated) {
+      await authStore.initializeAuth()
+    } else {
+      // 토큰이 없는 경우 CSRF만 초기화 (401 에러 방지)
+      await authStore.getCsrfToken()
+    }
   } catch (error) {
-    // 초기화 실패 시 조용히 처리
-    console.warn('Auth initialization failed:', error)
+    // 초기화 실패 시 조용히 처리 (사용자에게 영향 없음)
+    console.debug('Auth initialization skipped:', error)
   }
 })

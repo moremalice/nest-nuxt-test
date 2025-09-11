@@ -328,6 +328,11 @@ export const useAuthStore = defineStore('auth', () => {
       
       return false
     } catch (error) {
+      // Silent 모드가 아닐 때만 에러 로깅
+      if (!silent) {
+        console.warn('Token refresh failed:', error)
+      }
+      
       refreshRetryCount++
       
       if (refreshRetryCount >= MAX_REFRESH_RETRIES) {
@@ -378,17 +383,21 @@ export const useAuthStore = defineStore('auth', () => {
       console.warn('Failed to initialize CSRF token:', error)
     }
 
-    // 액세스 토큰이 만료되었거나 만료 임박한 경우에만 갱신
-    // 60초 버퍼를 두어 만료 직전 토큰도 갱신
-    if (isTokenExpired(accessToken.value, 60)) {
+    // 액세스 토큰이 있고 만료 임박한 경우에만 갱신 시도
+    // 토큰이 아예 없는 경우는 갱신 시도하지 않음 (401 에러 방지)
+    if (accessToken.value && isTokenExpired(accessToken.value, 60)) {
       try {
-        await refreshToken()
+        const refreshSuccess = await refreshToken(true) // silent 모드로 실행
+        if (!refreshSuccess) {
+          // 갱신 실패 시 인증 정보 정리 (조용히 처리)
+          clearAuth()
+        }
       } catch (error) {
-        // 토큰 갱신 실패 시 인증 정보 정리
+        // 토큰 갱신 실패 시 인증 정보 정리 (조용히 처리)
         clearAuth()
       }
     }
-    // 토큰이 아직 유효하면 갱신하지 않음 (서버 부하 감소)
+    // 토큰이 없거나 아직 유효하면 갱신하지 않음 (불필요한 요청 방지)
   }
 
   return {
