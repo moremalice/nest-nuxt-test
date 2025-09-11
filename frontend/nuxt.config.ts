@@ -4,8 +4,12 @@ export default defineNuxtConfig({
     srcDir: 'app',
     ssr: false,
 
+    experimental: {
+        asyncContext: true
+    },
+
     devtools: {
-        enabled: process.env.NODE_ENV !== 'production',
+        enabled: process.env.NUXT_PUBLIC_APP_ENV !== 'production',
         timeline: {
             enabled: true
         }
@@ -82,7 +86,7 @@ export default defineNuxtConfig({
             alwaysRedirect: false,
             fallbackLocale: 'ko',
             // 운영 환경에서는 HTTPS 사용 시 true 권장
-            cookieSecure: process.env.NODE_ENV === 'production',
+            cookieSecure: process.env.NUXT_PUBLIC_APP_ENV === 'production',
         },
 
         // 보안/빌드 설정
