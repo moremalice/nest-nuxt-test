@@ -115,8 +115,8 @@ coverage/
 *.old
 
 # Specific problem files (from previous error)
-#frontend/public/img/content/piki/PIKI_4k_kr_250207.mp4
-#frontend/public/img/content/talk/pikitalk.mp4
+frontend/public/img/content/piki/PIKI_4k_kr_250207.mp4
+frontend/public/img/content/talk/pikitalk.mp4
 
-CLAUDE.md
-.claude/
+#CLAUDE.md
+#.claude/

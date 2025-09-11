@@ -114,14 +114,15 @@ For detailed frontend system integration and API patterns, see: **[docs/frontend
 ### Backend (NestJS)
 
 **Architectural Principles:**
-- Use a modular architecture
-- Encapsulate each domain/route in its own module
+- Use a modular architecture with standardized structure
+- Encapsulate each domain/route in its own module under `src/module/`
 - One controller per primary route; additional controllers for sub‑routes
-- A `models/` folder for DTOs and output types
-- DTOs validated with `class‑validator`
-- Services folder for business logic and persistence
-- Entities with TypeORM for database mapping
-- One service per entity
+- A `dto/` folder for request/response data transfer objects
+- DTOs validated with `class‑validator` and documented with Swagger
+- Services for business logic and persistence with TypeORM repositories
+- Entities with TypeORM for database mapping using SnakeNamingStrategy
+- Multi-database support: `piki_world_db`, `piki_place_db`, `test_user_db`
+- One service per entity with explicit database connection injection
 
 For detailed backend implementation patterns, see: **[docs/backend-patterns.md](docs/backend-patterns.md)**
 
@@ -190,9 +191,10 @@ For detailed implementation patterns and examples:
 
 **Core Security Architecture:**
 - **JWT Dual-Token**: Access Token (15min, Bearer) + Refresh Token (12hr, HttpOnly Cookie)
-- **CSRF Protection**: Auth Store integrated double-submit pattern with 10-minute token lifecycle
-- **Auto Features**: Token refresh, retry logic, cross-tab session sync, loading states
-- **Unified Security**: CSRF and Auth managed in single Pinia store for consistency
+- **Smart CSRF Protection**: Auth Store integrated double-submit pattern with 10-minute token lifecycle
+- **Mobile Client Support**: Automatic CSRF bypass for mobile apps via X-Client-Type header
+- **Auto Features**: Token refresh, retry logic, cross-tab session sync, loading states, exponential backoff
+- **Unified Security**: CSRF and Auth managed in single Pinia store for consistency and SSR safety
 
 **Key Files for Auth/Security:**
 - **Backend**: `/backend/src/module/auth/`, `/backend/src/module/security/`
@@ -222,6 +224,28 @@ For detailed API communication patterns, see: **[docs/api-communication.md](docs
 **Standard Ports:**
 - **Backend**: 3020 (`cd backend && npm run local`)
 - **Frontend**: 3000 (`cd frontend && npm run local`)
+
+## Environment Management
+
+**Environment Files Structure:**
+```
+# Backend environments
+backend/.env.local          # Local development
+backend/.env.development    # Development server
+backend/.env.production     # Production server
+
+# Frontend environments  
+frontend/.env.local         # Local development with proxy
+frontend/.env.development   # Development build
+frontend/.env.production    # Production build
+```
+
+**Key Environment Variables:**
+- `NODE_ENV`: Determines runtime environment (local/development/production)
+- `NUXT_API_BASE_URL`: Backend API URL for frontend requests
+- `DB_*`: Multi-database connection settings for different data sources
+- `JWT_*_SECRET`: JWT token secrets for access/refresh tokens
+- `CSRF_*`: CSRF protection configuration parameters
 
 **Port Cleanup:**
 For detailed port management commands and troubleshooting, see: **[docs/port-management.md](docs/port-management.md)**

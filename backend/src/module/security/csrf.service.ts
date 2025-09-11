@@ -45,7 +45,7 @@ export class CsrfService {
 
             this.enabled = true;
             this.reason = '';
-            console.log('[CSRF] protection enabled');
+            // console.log('[CSRF] protection enabled');
         } catch (error: any) {
             this.enabled = false;
             this.reason = error?.message || 'unknown error';

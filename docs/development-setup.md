@@ -37,31 +37,36 @@ LOG_HTTP_BODY=true     # production: false
 LOG_HTTP_MAX=4096      # production: 1024
 ```
 
-#### Database Configuration (Triple MySQL Setup)
+#### Database Configuration (Multi-Database Setup)
 ```bash
-# Main Database (piki_world)
-DB_WORLD_HOST=database-1.czlviwuaollk.ap-northeast-2.rds.amazonaws.com
+# Main Database (piki_world_db)
+DB_WORLD_HOST=your-database-host.amazonaws.com
 DB_WORLD_PORT=3306
-DB_WORLD_USERNAME=piki_world
-DB_WORLD_PASSWORD=tlrmakcpdls
+DB_WORLD_USERNAME=your_username
+DB_WORLD_PASSWORD=your_secure_password
 DB_WORLD_DATABASE=piki_world
-DB_WORLD_DEV=false
+DB_WORLD_DEV=false  # true for development logging
 
-# Place Database (owner_world/piki_place)
-DB_PLACE_HOST=121.182.91.193  # production: database-1.czlviwuaollk.ap-northeast-2.rds.amazonaws.com
+# Place Database (piki_place_db)  
+DB_PLACE_HOST=your-place-db-host
 DB_PLACE_PORT=13306           # production: 3306
-DB_PLACE_USERNAME=owner_world # production: piki_place
-DB_PLACE_PASSWORD=tlrmakcpdls
-DB_PLACE_DATABASE=owner_world # production: piki_place
+DB_PLACE_USERNAME=place_username
+DB_PLACE_PASSWORD=your_place_password
+DB_PLACE_DATABASE=piki_place
 
-# Test Database
-DB_TEST_USER_HOST=121.182.91.193
+# Test User Database (test_user_db)
+DB_TEST_USER_HOST=your-test-db-host
 DB_TEST_USER_PORT=13306
-DB_TEST_USER_USERNAME=root
-DB_TEST_USER_PASSWORD=tmvlemghkd
-DB_TEST_USER_DATABASE=nest_test  # development: nest-test
+DB_TEST_USER_USERNAME=test_username
+DB_TEST_USER_PASSWORD=your_test_password
+DB_TEST_USER_DATABASE=nest_test
 DB_TEST_USER_DEV=false
 ```
+
+**Database Connection Names:**
+- `piki_world_db`: Main application data
+- `piki_place_db`: Location/geographic data  
+- `test_user_db`: Test environment data
 
 #### Security Configuration
 ```bash
@@ -75,13 +80,14 @@ CSRF_STRICT=false  # production: true
 JWT_ACCESS_SECRET=environment-specific-access-secret
 JWT_REFRESH_SECRET=environment-specific-refresh-secret
 JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=12h  # 12 hours (actual implementation)
 JWT_ISSUER=nest-nuxt-app-{env}
 JWT_AUDIENCE=nest-nuxt-app-{env}
 
-# JWT Mobile (Extended expiration)
-JWT_MOBILE_ACCESS_EXPIRES_IN=30m
-JWT_MOBILE_REFRESH_EXPIRES_IN=30d  # production: same
+# Bcrypt & Rate Limiting
+BCRYPT_ROUNDS=10
+THROTTLE_TTL=60   # seconds
+THROTTLE_LIMIT=10 # requests per TTL window
 ```
 
 #### External Services
@@ -265,7 +271,7 @@ find . -maxdepth 2 -name "*test*.txt" -delete
 - **@nestjs/config** - Environment configuration with factory pattern
 - **TypeORM** - Database ORM with triple MySQL connections
 - **MySQL** - Primary database (world/place/test environments)
-- **JWT** - Authentication with refresh tokens (15min/7day)
+- **JWT** - Authentication with refresh tokens (15min/12hr)
 - **CSRF-CSRF** - CSRF protection with configurable strictness
 - **Swagger** - API documentation (available at `/api` in development)
 - **Jest** - Testing framework with e2e support
