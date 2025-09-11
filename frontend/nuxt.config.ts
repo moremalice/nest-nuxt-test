@@ -20,7 +20,8 @@ export default defineNuxtConfig({
         '@pinia/nuxt',
         '@nuxtjs/sitemap',
         '@nuxtjs/robots',
-        'nuxt-aos'
+        'nuxt-aos',
+        'nuxt-qrcode'
     ],
 
     // AOS 설정
@@ -28,6 +29,16 @@ export default defineNuxtConfig({
         duration: 800,
         easing: 'ease-in-out',
         once: true
+    },
+
+    // QR 코드 설정
+    qrcode: {
+        errorCorrectionLevel: 'M',
+        width: 200,
+        color: {
+            dark: '#000000',
+            light: '#ffffff'
+        }
     },
 
     compatibilityDate: '2024-04-03',
