@@ -1,7 +1,9 @@
 // frontend/server/api/__sitemap__/urls.ts
+import { defineSitemapEventHandler } from '#imports'
+import type { SitemapUrl } from '#sitemap/types'
 import { useServerApiGet } from '~/composables/api/useApi'
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
     try {
         const response = await useServerApiGet<any[]>('/land/recent-posts')
 
@@ -11,27 +13,25 @@ export default defineEventHandler(async (event) => {
             return []
         }
 
-        const urls = response.data
+        const urls: SitemapUrl[] = response.data
             .filter(post => post?.post_idx != null)
             .map((post) => {
                 const lastmod = toLastmodISO(post)
-                const item: any = {
+                const item: SitemapUrl = {
                     loc: `/land/detail/${post.post_idx}`,
-                    changefreq: 'weekly',
-                    priority: 0.8
+                    lastmod: lastmod
                 }
-                if (lastmod) item.lastmod = lastmod
                 return item
             })
-
-        // (선택) 5분 캐시
-        setResponseHeader(event, 'Cache-Control', 'public, max-age=300, stale-while-revalidate=86400')
 
         return urls
     } catch (error) {
         console.error('Failed to generate sitemap URLs:', error)
         return []
     }
+}, {
+    maxAge: 60 * 10,     // 10분 캐시
+    staleMaxAge: 60 * 60 // (선택) 오래된 캐시 허용 시간
 })
 
 /** post 안의 reg_date/timestamp들을 안전하게 ISO8601로 변환 */

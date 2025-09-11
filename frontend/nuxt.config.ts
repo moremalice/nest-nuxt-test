@@ -19,6 +19,7 @@ export default defineNuxtConfig({
         '@nuxtjs/i18n',
         '@pinia/nuxt',
         '@nuxtjs/sitemap',
+        '@nuxtjs/robots',
         'nuxt-aos'
     ],
 
@@ -41,12 +42,12 @@ export default defineNuxtConfig({
     ],
 
     site: {
-        url: 'https://pikitalk.com',
+        url: process.env.NUXT_PUBLIC_SITE_URL,
         name: 'Pikitalk'
     },
 
     sitemap: {
-        sources: ['/', '/api/__sitemap__/urls'],
+        sources: ['/api/__sitemap__/urls'],
     },
 
     i18n: {
@@ -120,10 +121,43 @@ export default defineNuxtConfig({
         '~/assets/css/content.css'
     ],
 
+    // === Robots ===
+    robots: {
+        groups: [
+            {
+                userAgent: '*',
+                // 프로덕션만 인덱싱 허용
+                disallow: process.env.NUXT_PUBLIC_APP_ENV === 'production' ? [] : ['/'],
+            }
+        ],
+        // Search Console 제출을 위해 사이트맵 URL을 명시
+        sitemap: ['/sitemap.xml'],
+        // robots.txt 캐시 헤더(운영/부하 상황에 맞춰 조정)
+        cacheControl: 'max-age=14400, must-revalidate', // 4시간
+    },
+
+    // === 캐시 / 헤더 ===
+    routeRules: {
+        // nuxt sitemap은 기본 SWR 캐시가 있으나, 서비스 특성에 맞게 조정 가능
+        '/sitemap.xml': {
+            swr: 600, // 10분
+            headers: { 'cache-control': 'public, max-age=600, stale-while-revalidate=86400' }
+        },
+        '/sitemap-*.xml': {
+            swr: 600,
+            headers: { 'cache-control': 'public, max-age=600, stale-while-revalidate=86400' }
+        },
+        '/robots.txt': {
+            swr: 600,
+            headers: { 'cache-control': 'public, max-age=600, must-revalidate' }
+        }
+    },
+
     runtimeConfig: {
         public: {
             NUXT_APP_ENVIRONMENT: process.env.NUXT_PUBLIC_APP_ENV || 'development',
-            NUXT_API_BASE_URL: process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3020',
+            NUXT_API_BASE_URL: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3020',
+            siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
         }
     }
 })
