@@ -51,6 +51,9 @@ cookies*.txt
 *.cache
 .cache/
 
+# Windows-specific files
+nul
+
 # Database
 *.db
 *.sqlite

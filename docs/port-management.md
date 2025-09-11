@@ -4,12 +4,44 @@ This guide provides commands for managing development ports 3000, 3001, and 3020
 
 ## Quick Port Cleanup
 
+### For Claude Code Users (Recommended)
+
+If you're using Claude Code and have background servers running:
+
+```bash
+# Check active background processes
+/bashes
+
+# Kill specific background server by ID
+# Example: KillBash tool with ID from /bashes output
+```
+
+**Note**: Use the KillBash tool in Claude Code for instant termination of background processes.
+
 ### Windows (PowerShell)
 Copy and paste the following command in PowerShell:
 
 ```powershell
 # One-liner port cleanup for Windows
 Write-Host "🧹 Cleaning ports 3000, 3001, 3020..." -ForegroundColor Cyan; $ports = @(3000, 3001, 3020); foreach($p in $ports) { $inUse = Test-NetConnection -ComputerName localhost -Port $p -InformationLevel Quiet -ErrorAction SilentlyContinue; if($inUse) { Write-Host "⚠️  Port $p in use" -ForegroundColor Red } else { Write-Host "✅ Port $p free" -ForegroundColor Green } }; if($ports | Where-Object { Test-NetConnection -ComputerName localhost -Port $_ -InformationLevel Quiet -ErrorAction SilentlyContinue }) { Write-Host "🔧 Terminating Node.js processes..." -ForegroundColor Yellow; Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; netsh int ip reset | Out-Null; Start-Sleep 1; Write-Host "✅ Cleanup complete!" -ForegroundColor Green } else { Write-Host "🎉 All ports already free!" -ForegroundColor Green }
+```
+
+### Windows (Git Bash)
+For Windows users using Git Bash environment:
+
+```bash
+# Git Bash compatible port cleanup for Windows
+echo "🧹 Cleaning ports 3000, 3001, 3020..."
+for port in 3000 3001 3020; do
+  if netstat -an 2>/dev/null | grep -q ":$port "; then
+    echo "⚠️  Port $port in use"
+    # Use taskkill through Git Bash
+    taskkill //F //IM node.exe 2>/dev/null || echo "No node processes found"
+  else
+    echo "✅ Port $port free"
+  fi
+done
+echo "✅ Cleanup complete!"
 ```
 
 ### Linux/macOS (Bash)
@@ -51,13 +83,24 @@ lsof -i :3001
 
 ### 2. Terminate Specific Processes
 
-**Windows:**
+**Windows (PowerShell):**
 ```powershell
 # Find PID from netstat output, then kill it
 taskkill /PID <PID_NUMBER> /F
 
 # Or kill all Node.js processes
 Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+```
+
+**Windows (Git Bash):**
+```bash
+# Kill processes by port (Git Bash compatible)
+netstat -ano | grep ":3000" | awk '{print $5}' | xargs -I {} taskkill //PID {} //F
+netstat -ano | grep ":3020" | awk '{print $5}' | xargs -I {} taskkill //PID {} //F
+netstat -ano | grep ":3001" | awk '{print $5}' | xargs -I {} taskkill //PID {} //F
+
+# Or kill all Node.js processes
+taskkill //F //IM node.exe
 ```
 
 **Linux/macOS:**
@@ -124,19 +167,30 @@ cd frontend && npm run local
 - Restart computer if issues persist
 
 **Background Node.js Processes:**
+- **Claude Code Users**: Use `/bashes` command to list and KillBash tool to terminate
 - Use the "kill all Node.js processes" commands above
 - Check task manager (Windows) or activity monitor (macOS) for hidden processes
 
 **'nul' File Creation (Windows Git Bash):**
-If you find a file named `nul` in your frontend directory:
+If you find a file named `nul` in your project directory:
 ```bash
 # Remove the file
-rm -f frontend/nul
+rm -f nul
 
-# This happens when Windows command output gets redirected incorrectly in Git Bash
-# The file is harmless and can be safely deleted
-# To prevent it: Use PowerShell for Windows-specific commands instead of Git Bash
+# Or if in specific directories
+rm -f frontend/nul
 ```
+
+**Why this happens:**
+- Windows reserves `nul` as a device name (equivalent to `/dev/null` on Unix)
+- When Git Bash processes certain Windows commands, output redirection can create actual files
+- This commonly occurs during port checking or process monitoring commands
+
+**Prevention:**
+- ✅ Use PowerShell for Windows-specific commands like `netstat`, `tasklist`
+- ✅ Use the provided cleanup scripts above which are designed for each platform
+- ✅ The `nul` file is now included in `.gitignore` to prevent accidental commits
+- ❌ Avoid mixing Windows CMD syntax in Git Bash environment
 
 ### Emergency Reset
 
@@ -154,6 +208,44 @@ netsh winsock reset
 # Nuclear option: Kill everything
 sudo pkill -f node
 sudo lsof -ti :3000,:3001,:3020 | xargs -r kill -9
+```
+
+## Quick Reference by Environment
+
+### Claude Code Users
+```bash
+# List background processes
+/bashes
+
+# Kill specific process (replace ID with actual ID from /bashes)
+# Use KillBash tool in Claude Code interface
+```
+
+### Git Bash (Windows)
+```bash
+# Quick kill all Node.js processes
+taskkill //F //IM node.exe
+
+# Check ports
+netstat -ano | grep -E ":(3000|3001|3020)"
+```
+
+### PowerShell (Windows)
+```powershell
+# Quick kill all Node.js processes
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# Check ports
+Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet
+```
+
+### Unix/Linux/macOS
+```bash
+# Quick kill all Node.js processes
+pkill -f node
+
+# Check ports
+lsof -i :3000 :3001 :3020
 ```
 
 ## Port Configuration Reference
