@@ -28,10 +28,10 @@ onRequest: async ({ options }) => {
     headers.set('Authorization', `Bearer ${authStore.token}`)
   }
 
-  // 3. Auto-inject CSRF token for mutations
+  // 3. Auto-inject CSRF token for mutations (Auth Store based)
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    const { getCsrfToken } = useCsrf()
-    const csrfToken = await getCsrfToken()
+    const authStore = useAuthStore()
+    const csrfToken = await authStore.getCsrfToken()
     headers.set('X-CSRF-Token', csrfToken)
   }
 }

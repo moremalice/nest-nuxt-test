@@ -32,10 +32,20 @@ interface RegisterResponseData {
   email: string
 }
 
+interface CsrfTokenData {
+  csrfToken: string
+}
+
+type CsrfApiResponse = ApiResponse<CsrfTokenData>
+
 export const useAuthStore = defineStore('auth', () => {
   // 상태 관리
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
+  
+  // CSRF 토큰 상태 관리 (보안 강화)
+  const csrfToken = ref<string | null>(null)
+  const isCsrfLoading = ref<boolean>(false)
   
   // 토큰 갱신 동시성 제어 (중복 요청 방지)
   let refreshTokenPromise: Promise<boolean> | null = null
@@ -43,6 +53,11 @@ export const useAuthStore = defineStore('auth', () => {
   const MAX_REFRESH_RETRIES = 2
   let lastRefreshFailTime = 0
   const REFRESH_COOLDOWN = 30000 // 실패 후 30초 쿨다운
+  
+  // CSRF 토큰 관리
+  const MAX_CSRF_RETRIES = 3
+  let csrfRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  let csrfFetchPromise: Promise<string | null> | null = null
 
   // JWT 토큰 만료 체크 유틸리티
   const isTokenExpired = (token: string | null, bufferSeconds: number = 30): boolean => {
@@ -79,6 +94,130 @@ export const useAuthStore = defineStore('auth', () => {
   const clearAuth = () => {
     accessToken.value = null
     user.value = null
+    clearCsrfToken()
+  }
+
+  // CSRF 토큰 관리 메서드들
+  const clearCsrfRefreshTimer = (): void => {
+    if (csrfRefreshTimer) {
+      clearTimeout(csrfRefreshTimer)
+      csrfRefreshTimer = null
+    }
+  }
+
+  const clearCsrfToken = (): void => {
+    csrfToken.value = null
+    clearCsrfRefreshTimer()
+  }
+
+  const waitForCsrfTokenLoading = async (): Promise<void> => {
+    if (!isCsrfLoading.value) return
+
+    return new Promise(resolve => {
+      const checkLoading = () => {
+        if (!isCsrfLoading.value) {
+          resolve()
+        } else {
+          setTimeout(checkLoading, 50)
+        }
+      }
+      checkLoading()
+    })
+  }
+
+  const fetchCsrfToken = async (currentRetry: number = 0): Promise<string | null> => {
+    if (currentRetry >= MAX_CSRF_RETRIES) {
+      return null
+    }
+
+    if (isCsrfLoading.value && currentRetry === 0) {
+      await waitForCsrfTokenLoading()
+      return csrfToken.value
+    }
+
+    if (csrfFetchPromise && currentRetry === 0) {
+      return await csrfFetchPromise
+    }
+
+    const fetchPromise = performCsrfFetch(currentRetry)
+    if (currentRetry === 0) {
+      csrfFetchPromise = fetchPromise
+    }
+
+    try {
+      return await fetchPromise
+    } finally {
+      if (currentRetry === 0) {
+        csrfFetchPromise = null
+      }
+    }
+  }
+
+  const performCsrfFetch = async (currentRetry: number): Promise<string | null> => {
+    isCsrfLoading.value = true
+
+    try {
+      const response = await $fetch<CsrfApiResponse>('/csrf/token', {
+        method: 'GET',
+        baseURL: useRuntimeConfig().public.NUXT_API_BASE_URL,
+        timeout: 10000,
+        credentials: 'include'
+      })
+
+      if (response.status === 'success' && response.data?.csrfToken) {
+        csrfToken.value = response.data.csrfToken
+
+        clearCsrfRefreshTimer()
+
+        csrfRefreshTimer = setTimeout(() => {
+          clearCsrfToken()
+          fetchCsrfToken()
+        }, 10 * 60 * 1000) // 10분으로 단축 (보안 강화)
+
+        return response.data.csrfToken
+      } else {
+        throw new Error('Invalid CSRF response')
+      }
+    } catch (error: any) {
+      if (currentRetry < MAX_CSRF_RETRIES) {
+        const delay = Math.pow(2, currentRetry) * 1000 // 지수 백오프
+
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(fetchCsrfToken(currentRetry + 1))
+          }, delay)
+        })
+      }
+
+      return null
+    } finally {
+      if (currentRetry === 0) {
+        isCsrfLoading.value = false
+      }
+    }
+  }
+
+  const getCsrfToken = async (): Promise<string | null> => {
+    if (csrfToken.value) {
+      return csrfToken.value
+    }
+
+    if (isCsrfLoading.value) {
+      await waitForCsrfTokenLoading()
+      return csrfToken.value
+    }
+
+    await fetchCsrfToken()
+    return csrfToken.value
+  }
+
+  const refreshCsrfToken = async (): Promise<string | null> => {
+    clearCsrfToken()
+    return await fetchCsrfToken()
+  }
+
+  const isCSrfTokenValid = (): boolean => {
+    return csrfToken.value !== null && csrfToken.value !== ''
   }
 
   // 로그인
@@ -117,12 +256,8 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       // 서버 에러 무시 (클라이언트 정리는 계속 진행)
     } finally {
-      // 항상 클라이언트 인증 정보 정리
+      // 항상 클라이언트 인증 정보 정리 (CSRF 토큰 포함)
       clearAuth()
-      
-      // CSRF 토큰도 정리
-      const { clearCsrfToken } = useCsrf()
-      clearCsrfToken()
     }
     
     return true
@@ -236,9 +371,8 @@ export const useAuthStore = defineStore('auth', () => {
   const initializeAuth = async (): Promise<void> => {
     if (!import.meta.client) return
 
-    // CSRF 토큰을 먼저 준비
+    // CSRF 토큰을 먼저 준비 (새로운 통합 시스템 사용)
     try {
-      const { getCsrfToken } = useCsrf()
       await getCsrfToken()
     } catch (error) {
       console.warn('Failed to initialize CSRF token:', error)
@@ -260,6 +394,8 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user: readonly(user),
     accessToken: readonly(accessToken),
+    csrfToken: readonly(csrfToken),
+    isCsrfLoading: readonly(isCsrfLoading),
 
     isAuthenticated,
     currentUser,
@@ -271,6 +407,13 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     getProfile,
     initializeAuth,
-    clearAuth
+    clearAuth,
+
+    getCsrfToken,
+    refreshCsrfToken,
+    clearCsrfToken,
+    isCSrfTokenValid,
+    waitForCsrfTokenLoading,
+    fetchCsrfToken
   }
 })

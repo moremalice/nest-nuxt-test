@@ -26,11 +26,11 @@ export default defineNuxtPlugin((nuxtApp) => {
         headers.set('Authorization', `Bearer ${token.value}`)
       }
 
-      // Auto-inject CSRF token for mutations
+      // Auto-inject CSRF token for mutations (Auth Store based)
       const method = (options.method || 'GET').toUpperCase()
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-        const { getCsrfToken } = useCsrf()
-        const csrfToken = await getCsrfToken()
+        const authStore = useAuthStore()
+        const csrfToken = await authStore.getCsrfToken()
         if (csrfToken) {
           headers.set('X-CSRF-Token', csrfToken)
         }
@@ -399,46 +399,59 @@ export const useFeatureUI = () => ({
 });
 ```
 
-### CSRF Management Composable (`app/composables/utils/useCsrf.ts`)
+### CSRF Management System (Auth Store Based)
 
-**SSR-Safe Global State Management:**
+**Unified Security Architecture:**
 ```typescript
-// Uses useState for SSR-safe global state across requests
-const csrfToken = useState<string | null>('csrf-token', () => null)
-const isTokenLoading = useState<boolean>('csrf-token-loading', () => false)
+// Auth Store manages both authentication and CSRF for security consistency
+const authStore = useAuthStore()
 
-export const useCsrf = () => ({
-  csrfToken: readonly(csrfToken),
-  isTokenLoading: readonly(isTokenLoading),
-  fetchCsrfToken,      // Fetch new token with retry logic
-  getCsrfToken,        // Get existing or fetch new token
-  refreshCsrfToken,    // Force refresh token
-  isTokenValid,        // Check if token exists
-  clearCsrfToken,      // Clear token and timers
-  clearRefreshTimer,   // Cleanup function
-})
+// CSRF operations are now part of the unified security system:
+authStore.getCsrfToken()        // Get current CSRF token
+authStore.refreshCsrfToken()    // Force refresh CSRF token
+authStore.clearCsrfToken()      // Clear CSRF token
+authStore.isCSrfTokenValid()    // Check token validity
 ```
 
-**Key Features:**
-- **SSR-Safe**: Uses `useState` instead of global `ref` for Nuxt 4 compatibility
-- **Auto-Retry**: Exponential backoff on token fetch failures (1s, 2s, 4s)
-- **Event-Driven**: Auto-refreshes on visibility change and online status
-- **Memory Safe**: Proper timer cleanup to prevent memory leaks
-- **Type-Safe**: Full TypeScript support with explicit return types
-
-**Plugin-Based Initialization:**
+**CSRF Composable Proxy (`app/composables/utils/useCsrf.ts`):**
 ```typescript
-// app/plugins/csrf.client.ts - Automatic setup
+// Backward compatibility proxy that delegates to Auth Store
+export const useCsrf = () => {
+  const authStore = useAuthStore()
+  
+  return {
+    csrfToken: authStore.csrfToken,           // Reactive readonly state
+    isTokenLoading: authStore.isCsrfLoading,  // Loading state
+    fetchCsrfToken: authStore.fetchCsrfToken, // Delegated to Auth Store
+    getCsrfToken: authStore.getCsrfToken,     // Delegated to Auth Store
+    refreshCsrfToken: authStore.refreshCsrfToken, // Delegated to Auth Store
+    isTokenValid: authStore.isCSrfTokenValid, // Delegated to Auth Store
+    clearCsrfToken: authStore.clearCsrfToken, // Delegated to Auth Store
+    clearRefreshTimer: () => {},              // No-op (handled by Auth Store)
+  }
+}
+```
+
+**Enhanced Security Features:**
+- **SSR Hydration Attack Prevention**: Eliminates `useState` vulnerability by using Pinia store
+- **10-minute Token Lifecycle**: Enhanced security with shorter expiration (vs 25 minutes)
+- **Memory Safety**: Pinia store lifecycle prevents memory leaks and cross-tab issues
+- **Centralized Security**: Single source of truth for all authentication and CSRF logic
+- **Auto-Retry**: Exponential backoff on token fetch failures (1s, 2s, 4s)
+
+**Auth Store Based Plugin:**
+```typescript
+// app/plugins/csrf.client.ts - Auth Store integration
 export default defineNuxtPlugin(() => {
   if (!import.meta.client) return
   
   onNuxtReady(() => {
-    const { fetchCsrfToken, isTokenValid, refreshCsrfToken } = useCsrf()
+    const authStore = useAuthStore()
     
-    // Initial token fetch (non-blocking)
-    fetchCsrfToken().catch(() => {})
+    // Initial token fetch through Auth Store
+    authStore.fetchCsrfToken().catch(() => {})
     
-    // Event listeners for token management
+    // Enhanced event listeners with 5-minute visibility check
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', handleOnlineReconnect)
     window.addEventListener('beforeunload', cleanup)
@@ -446,15 +459,19 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-**Usage in Components:**
+**Usage Patterns:**
 ```typescript
-// Automatic usage via API plugin - no manual calls needed
-const result = await useApi('/protected-endpoint', data) // CSRF auto-injected
+// 1. Automatic usage (recommended) - no manual calls needed
+const result = await useApi('/protected-endpoint', data) // CSRF auto-injected via Auth Store
 
-// Manual usage (rare cases)
+// 2. Direct Auth Store access (for advanced cases)
+const authStore = useAuthStore()
+const csrfToken = await authStore.getCsrfToken()
+
+// 3. Legacy compatibility (maintains existing code)
 const { csrfToken, isTokenValid, refreshCsrfToken } = useCsrf()
 if (!isTokenValid()) {
-  await refreshCsrfToken()
+  await refreshCsrfToken() // Proxied to Auth Store
 }
 ```
 

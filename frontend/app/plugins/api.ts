@@ -49,15 +49,15 @@ export default defineNuxtPlugin((nuxtApp) => {
         headers.set('Authorization', `Bearer ${token.value}`)
       }
 
-      // CSRF 토큰 주입 (변경 메서드에만)
+      // CSRF 토큰 주입 (변경 메서드에만) - Auth Store 기반 보안 강화
       const method = (options.method || 'GET').toUpperCase()
       const extendedOpts = options as ExtendedFetchOptions
       const skipCsrf = extendedOpts.context?.skipCsrf === true
       
       if (!skipCsrf && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
         try {
-          const { getCsrfToken } = useCsrf()
-          const csrfToken = await getCsrfToken()
+          const authStore = useAuthStore()
+          const csrfToken = await authStore.getCsrfToken()
           
           if (csrfToken) {
             headers.set('X-CSRF-Token', csrfToken)
@@ -121,11 +121,11 @@ export default defineNuxtPlugin((nuxtApp) => {
         }
       }
 
-      // CSRF 에러: 토큰 재발급 후 재시도
+      // CSRF 에러: 토큰 재발급 후 재시도 - Auth Store 기반 보안 강화
       const responseData = response?._data
       if (!context.skipCsrfRetry && isCsrfError(responseData)) {
-        const { refreshCsrfToken } = useCsrf()
-        await refreshCsrfToken()
+        const authStore = useAuthStore()
+        await authStore.refreshCsrfToken()
         
         const apiInstance = nuxtApp.$api as ExtendedApi
         return await apiInstance(request, {

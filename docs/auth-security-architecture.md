@@ -38,8 +38,8 @@ This document provides a comprehensive overview of the authentication and securi
 | **Plugins** | `plugins/api.ts` | API client with auto auth/CSRF injection, loading states |
 | | `plugins/auth.client.ts` | Auth initialization on app start |
 | | `plugins/session-bus.client.ts` | Cross-tab session synchronization |
-| **Store** | `stores/auth.ts` | Auth state management, token refresh logic |
-| **Composables** | `composables/utils/useCsrf.ts` | CSRF token management and refresh |
+| **Store** | `stores/auth.ts` | Auth state management, token refresh logic, CSRF management |
+| **Composables** | `composables/utils/useCsrf.ts` | CSRF composable proxy to Auth Store |
 | | `composables/utils/useApiHelper.ts` | API response types and error detection |
 | | `composables/api/useApi.ts` | API request wrapper functions |
 | **Middleware** | `middleware/auth.middleware.ts` | Route protection middleware |
@@ -144,16 +144,21 @@ The system implements intelligent CSRF protection that automatically adapts to c
 - Supports fail-open/fail-closed modes via `CSRF_STRICT` environment variable
 - Automatic mobile client detection for CSRF bypass
 
-**Frontend (`useCsrf.ts`):**
-- Auto-refreshes tokens every 25 minutes
+**Frontend Auth Store (`stores/auth.ts`):**
+- CSRF tokens managed within unified Auth store architecture
+- Auto-refreshes tokens every 10 minutes (security enhanced)
 - Retry logic with exponential backoff
 - Token synchronization on page visibility changes
-- Improved error detection (403 Forbidden support)
-- SSR-safe state management using `useState` composable
+- Memory-safe Pinia store state management (prevents SSR hydration attacks)
+
+**CSRF Composable (`useCsrf.ts`):**
+- Proxy layer that delegates all operations to Auth Store
+- Maintains backward compatibility with existing code
+- Zero direct state management (all handled by Auth Store)
 
 **CSRF Plugin (`plugins/csrf.client.ts`):**
-- Automatic initialization using `onNuxtReady` for non-blocking startup
-- Event-driven token management (visibility change, online status)
+- Auth Store based initialization using `onNuxtReady` for non-blocking startup
+- Event-driven token management with 5-minute visibility check interval
 - Graceful cleanup on app termination
 - Zero-configuration setup for Nuxt 4
 
@@ -200,21 +205,21 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-**Key Improvements from Legacy Pattern:**
-- **SSR-Safe**: Uses `useState` instead of global `ref` variables
-- **Non-blocking**: `onNuxtReady` prevents blocking initial page render
-- **Auto-registration**: No manual initialization calls needed in components
-- **Memory-safe**: Proper cleanup on app termination
+**Key Improvements from useState Pattern:**
+- **Auth Store Integration**: CSRF managed within unified Pinia store for security consistency
+- **SSR Hydration Attack Prevention**: Eliminates `useState` SSR vulnerability
+- **Memory Safety**: Pinia store lifecycle prevents memory leaks and cross-tab issues  
+- **10-minute Token Lifecycle**: Enhanced security with shorter token expiration
+- **Centralized Security**: Single source of truth for all authentication and CSRF logic
 
-**Migration from Legacy:**
+**Migration from useState:**
 ```typescript
-// ❌ Old pattern (removed)
-// app.vue
-const { initializeCsrfManagement } = useCsrf()
-initializeCsrfManagement()
+// ❌ Old pattern (security vulnerable)
+const csrfToken = useState<string | null>('csrf-token', () => null)
 
-// ✅ New pattern (automatic)
-// No code needed - handled by plugin
+// ✅ New pattern (Auth Store integrated)
+const authStore = useAuthStore()
+const csrfToken = authStore.getCsrfToken() // Proxied through useCsrf()
 ```
 
 ## Auto Token Refresh System

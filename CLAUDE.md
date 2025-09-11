@@ -190,12 +190,13 @@ For detailed implementation patterns and examples:
 
 **Core Security Architecture:**
 - **JWT Dual-Token**: Access Token (15min, Bearer) + Refresh Token (12hr, HttpOnly Cookie)
-- **CSRF Protection**: Double-submit cookie pattern with automatic token management
+- **CSRF Protection**: Auth Store integrated double-submit pattern with 10-minute token lifecycle
 - **Auto Features**: Token refresh, retry logic, cross-tab session sync, loading states
+- **Unified Security**: CSRF and Auth managed in single Pinia store for consistency
 
 **Key Files for Auth/Security:**
 - **Backend**: `/backend/src/module/auth/`, `/backend/src/module/security/`
-- **Frontend**: `app/plugins/api.ts`, `app/stores/auth.ts`, `app/composables/utils/useCsrf.ts`
+- **Frontend**: `app/plugins/api.ts`, `app/stores/auth.ts` (includes CSRF), `app/composables/utils/useCsrf.ts` (Auth Store proxy)
 
 For complete authentication and security details, see: **[docs/auth-security-architecture.md](docs/auth-security-architecture.md)**
 
