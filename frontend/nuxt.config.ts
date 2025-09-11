@@ -150,6 +150,14 @@ export default defineNuxtConfig({
         '/robots.txt': {
             swr: 600,
             headers: { 'cache-control': 'public, max-age=600, must-revalidate' }
+        },
+        // === 프록시 설정 ===
+        '/api/proxy/**': {
+            proxy: 'https://pikitalk.com/data/**',
+            headers: {
+                'access-control-allow-origin': '*',
+                'cache-control': 'public, max-age=3600'
+            }
         }
     },
 
