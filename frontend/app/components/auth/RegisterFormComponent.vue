@@ -30,8 +30,19 @@ const isSubmitting = ref(false)
 const recaptchaValidated = ref(false)
 const recaptchaToken = ref<string | null>(null)
 
-// reCAPTCHA composable
-const { executeRecaptcha, isRecaptchaReady, isExecuting, lastError, initializeRecaptcha } = useRecaptcha()
+// reCAPTCHA composable with enhanced features
+const { 
+  executeRecaptcha, 
+  isRecaptchaReady, 
+  isExecuting, 
+  lastError, 
+  initializeRecaptcha,
+  getValidToken,
+  clearToken 
+} = useRecaptcha()
+
+// Reference to checkbox component
+const recaptchaCheckboxRef = ref<any>(null)
 
 // Initialize reCAPTCHA when component mounts
 onMounted(async () => {
@@ -52,29 +63,23 @@ const clearError = () => {
   errorMessage.value = ''
 }
 
-// Step 1: reCAPTCHA token generation (backend will validate)
-const generateRecaptchaToken = async (): Promise<boolean> => {
-  try {
-    // Generate reCAPTCHA token using new composable
-    const result = await executeRecaptcha('register')
-    
-    if (!result.success || !result.token) {
-      errorMessage.value = result.error || 'reCAPTCHA 토큰 생성에 실패했습니다'
-      return false
-    }
-
-    // Store the token for registration (backend will validate)
-    recaptchaValidated.value = true
-    recaptchaToken.value = result.token
-    return true
-  } catch (error: any) {
-    console.error('reCAPTCHA token generation error:', error)
-    errorMessage.value = 'reCAPTCHA 토큰 생성 중 오류가 발생했습니다'
-    return false
-  }
+// Handle reCAPTCHA checkbox verification
+const handleRecaptchaVerified = (token: string) => {
+  console.log('reCAPTCHA verified via checkbox')
+  recaptchaValidated.value = true
+  recaptchaToken.value = token
+  clearError()
 }
 
-// Step 2: Registration submission
+// Handle reCAPTCHA error
+const handleRecaptchaError = (error: string) => {
+  console.error('reCAPTCHA error:', error)
+  recaptchaValidated.value = false
+  recaptchaToken.value = null
+  errorMessage.value = error
+}
+
+// Registration submission with auto reCAPTCHA fallback
 const handleSubmit = async () => {
   if (!isFormValid.value || isSubmitting.value) return
 
@@ -95,51 +100,69 @@ const handleSubmit = async () => {
   }
 
   try {
-    // Step 1: Generate reCAPTCHA token if not already generated
-    if (!recaptchaValidated.value) {
-      const recaptchaValid = await generateRecaptchaToken()
-      if (!recaptchaValid) {
-        isSubmitting.value = false
-        return
+    let validToken: string | null = recaptchaToken.value
+
+    // Check if we need to get a new token
+    if (!validToken) {
+      // Try to get token from checkbox component first
+      if (recaptchaCheckboxRef.value?.isVerified) {
+        validToken = recaptchaCheckboxRef.value.verifiedToken
+      }
+      
+      // If still no token, generate one automatically
+      if (!validToken) {
+        console.log('Auto-generating reCAPTCHA token on submit...')
+        const result = await getValidToken('register')
+        
+        if (!result.success || !result.token) {
+          errorMessage.value = result.error || 'reCAPTCHA 검증에 실패했습니다'
+          isSubmitting.value = false
+          return
+        }
+        
+        validToken = result.token
       }
     }
 
-    // Step 2: Submit registration
+    // Submit registration with token
     const registerData: RegisterData = {
       email: formData.value.email,
-      password: formData.value.password
-    }
-
-    // Add validated reCAPTCHA token
-    if (recaptchaToken.value) {
-      registerData.recaptchaToken = recaptchaToken.value
+      password: formData.value.password,
+      recaptchaToken: validToken
     }
 
     const success = await authStore.register(registerData)
 
     if (success) {
+      // Clear tokens after successful registration
+      clearToken()
+      if (recaptchaCheckboxRef.value) {
+        recaptchaCheckboxRef.value.reset()
+      }
       $emit('switch-to-login')
     } else {
       errorMessage.value = t('register_failed')
-      // Reset reCAPTCHA validation on registration failure
+      // Reset reCAPTCHA on failure
       recaptchaValidated.value = false
       recaptchaToken.value = null
+      clearToken()
+      if (recaptchaCheckboxRef.value) {
+        recaptchaCheckboxRef.value.reset()
+      }
     }
   } catch (error: any) {
     console.error('Registration error:', error)
     errorMessage.value = error?.message || t('register_failed')
-    // Reset reCAPTCHA validation on error
+    // Reset reCAPTCHA on error
     recaptchaValidated.value = false
     recaptchaToken.value = null
+    clearToken()
+    if (recaptchaCheckboxRef.value) {
+      recaptchaCheckboxRef.value.reset()
+    }
   } finally {
     isSubmitting.value = false
   }
-}
-
-// Manual reCAPTCHA token generation button handler
-const handleRecaptchaVerify = async () => {
-  clearError()
-  await generateRecaptchaToken()
 }
 
 const { t } = useI18n()
@@ -211,31 +234,15 @@ const { t } = useI18n()
           </div>
         </div>
 
-        <!-- reCAPTCHA Status and Verification -->
-        <RecaptchaStatusComponent
-          :is-recaptcha-ready="isRecaptchaReady"
-          :is-executing="isExecuting"
-          :last-error="lastError"
+        <!-- reCAPTCHA Checkbox Component -->
+        <RecaptchaCheckboxComponent
+          ref="recaptchaCheckboxRef"
+          v-model="recaptchaValidated"
+          action="register"
+          :show-retry="true"
+          @verified="handleRecaptchaVerified"
+          @error="handleRecaptchaError"
         />
-        
-        <div v-if="!recaptchaValidated && isRecaptchaReady" class="recaptcha-verify">
-          <button
-            type="button"
-            class="recaptcha-button"
-            :disabled="isExecuting"
-            @click="handleRecaptchaVerify"
-          >
-            {{ isExecuting ? 'reCAPTCHA 토큰 생성 중...' : 'reCAPTCHA 토큰 생성하기' }}
-          </button>
-        </div>
-
-        <div v-if="recaptchaValidated" class="recaptcha-success">
-          <svg class="success-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-            <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
-          </svg>
-          <span>reCAPTCHA 토큰 생성 완료</span>
-        </div>
 
         <div v-if="errorMessage" class="auth-error">
           {{ errorMessage }}
@@ -245,7 +252,7 @@ const { t } = useI18n()
           <button
             type="submit"
             class="auth-button"
-            :disabled="!isFormValid || isSubmitting || (!recaptchaValidated && isRecaptchaReady)"
+            :disabled="!isFormValid || isSubmitting"
           >
             {{ isSubmitting ? t('submitting') : t('sign_up') }}
           </button>

@@ -24,9 +24,7 @@ export const useRecaptcha = () => {
 
   const config = useRuntimeConfig()
   const configSiteKey = config.public.NUXT_RECAPTCHA_SITE_KEY
-  
-  // Use single site key for all environments
-  const siteKey = configSiteKey || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+  const siteKey = configSiteKey || ''
   
   console.log('reCAPTCHA: Using site key:', siteKey.substring(0, 20) + '...')
 
@@ -266,14 +264,75 @@ export const useRecaptcha = () => {
     }
   }
 
+  // Token management
+  const currentToken = ref<string | null>(null)
+  const tokenGeneratedAt = ref<number | null>(null)
+  const TOKEN_EXPIRY_MS = 110000 // 110 seconds (2 minutes - 10 seconds buffer)
+
+  // Check if current token is still valid
+  const isTokenValid = (): boolean => {
+    if (!currentToken.value || !tokenGeneratedAt.value) {
+      return false
+    }
+    
+    const elapsed = Date.now() - tokenGeneratedAt.value
+    return elapsed < TOKEN_EXPIRY_MS
+  }
+
+  // Get valid token (refresh if needed)
+  const getValidToken = async (action: string = 'submit'): Promise<RecaptchaResult> => {
+    // If we have a valid token, return it
+    if (isTokenValid()) {
+      console.log('reCAPTCHA: Using existing valid token')
+      return {
+        success: true,
+        token: currentToken.value!
+      }
+    }
+
+    // Generate new token
+    console.log('reCAPTCHA: Generating new token (expired or missing)')
+    const result = await executeRecaptcha(action)
+    
+    if (result.success && result.token) {
+      currentToken.value = result.token
+      tokenGeneratedAt.value = Date.now()
+    }
+    
+    return result
+  }
+
+  // Clear stored token
+  const clearToken = () => {
+    currentToken.value = null
+    tokenGeneratedAt.value = null
+    console.log('reCAPTCHA: Token cleared')
+  }
+
+  // Enhanced execute function that stores token
+  const executeRecaptchaWithStorage = async (action: string = 'submit'): Promise<RecaptchaResult> => {
+    const result = await executeRecaptcha(action)
+    
+    if (result.success && result.token) {
+      currentToken.value = result.token
+      tokenGeneratedAt.value = Date.now()
+    }
+    
+    return result
+  }
+
   return {
     isRecaptchaReady: readonly(isRecaptchaReady),
     isExecuting: readonly(isExecuting),
     lastError: readonly(lastError),
-    executeRecaptcha,
+    executeRecaptcha: executeRecaptchaWithStorage,
     validateToken,
     isRecaptchaLoaded,
-    initializeRecaptcha
+    initializeRecaptcha,
+    getValidToken,
+    clearToken,
+    isTokenValid,
+    currentToken: readonly(currentToken)
   }
 }
 
