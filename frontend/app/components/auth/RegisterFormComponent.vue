@@ -11,7 +11,7 @@ interface RegisterFormData {
   confirmPassword: string;
 }
 
-defineEmits<{
+const emit = defineEmits<{
   'switch-to-login': []
 }>()
 
@@ -38,7 +38,8 @@ const {
   lastError, 
   initializeRecaptcha,
   getValidToken,
-  clearToken 
+  clearToken,
+  isTokenValid
 } = useRecaptcha()
 
 // Reference to checkbox component
@@ -79,52 +80,60 @@ const handleRecaptchaError = (error: string) => {
   errorMessage.value = error
 }
 
-// Registration submission with auto reCAPTCHA fallback
+// Registration submission with smart token management
 const handleSubmit = async () => {
   if (!isFormValid.value || isSubmitting.value) return
 
   isSubmitting.value = true
   clearError()
 
-  // Basic validation
+  // === Client-side validation (keep token) ===
   if (formData.value.password !== formData.value.confirmPassword) {
     errorMessage.value = t('password_mismatch')
     isSubmitting.value = false
+    // ✅ Keep token - no re-verification needed
     return
   }
 
   if (formData.value.password.length < 8) {
     errorMessage.value = t('password_too_short')
     isSubmitting.value = false
+    // ✅ Keep token - no re-verification needed
     return
   }
 
   try {
+    // Smart token management
     let validToken: string | null = recaptchaToken.value
 
-    // Check if we need to get a new token
-    if (!validToken) {
+    // Check token validity and reuse if possible
+    if (!validToken || !isTokenValid()) {
       // Try to get token from checkbox component first
-      if (recaptchaCheckboxRef.value?.isVerified) {
+      if (recaptchaCheckboxRef.value?.isVerified && recaptchaCheckboxRef.value?.verifiedToken && isTokenValid()) {
         validToken = recaptchaCheckboxRef.value.verifiedToken
-      }
-      
-      // If still no token, generate one automatically
-      if (!validToken) {
+        console.log('Reusing valid token from checkbox component')
+      } else {
+        // Auto-generate new token if needed
         console.log('Auto-generating reCAPTCHA token on submit...')
         const result = await getValidToken('register')
         
         if (!result.success || !result.token) {
-          errorMessage.value = result.error || 'reCAPTCHA 검증에 실패했습니다'
+          errorMessage.value = result.error || 'reCAPTCHA 검증이 필요합니다'
+          // Enable re-verification for token generation failure
+          if (recaptchaCheckboxRef.value) {
+            recaptchaCheckboxRef.value.enableReVerification('token_expired')
+          }
           isSubmitting.value = false
           return
         }
         
         validToken = result.token
       }
+    } else {
+      console.log('Using existing valid token')
     }
 
-    // Submit registration with token
+    // === Server request ===
     const registerData: RegisterData = {
       email: formData.value.email,
       password: formData.value.password,
@@ -134,31 +143,33 @@ const handleSubmit = async () => {
     const success = await authStore.register(registerData)
 
     if (success) {
-      // Clear tokens after successful registration
+      // === Registration success ===
       clearToken()
       if (recaptchaCheckboxRef.value) {
         recaptchaCheckboxRef.value.reset()
       }
-      $emit('switch-to-login')
+      emit('switch-to-login')
     } else {
+      // === Server validation failure (clear token and enable re-verification) ===
       errorMessage.value = t('register_failed')
-      // Reset reCAPTCHA on failure
+      clearToken()
       recaptchaValidated.value = false
       recaptchaToken.value = null
-      clearToken()
+      
       if (recaptchaCheckboxRef.value) {
-        recaptchaCheckboxRef.value.reset()
+        recaptchaCheckboxRef.value.enableReVerification('submission_failed')
       }
     }
   } catch (error: any) {
     console.error('Registration error:', error)
+    // === Network/server error (clear token and enable re-verification) ===
     errorMessage.value = error?.message || t('register_failed')
-    // Reset reCAPTCHA on error
+    clearToken()
     recaptchaValidated.value = false
     recaptchaToken.value = null
-    clearToken()
+    
     if (recaptchaCheckboxRef.value) {
-      recaptchaCheckboxRef.value.reset()
+      recaptchaCheckboxRef.value.enableReVerification('submission_failed')
     }
   } finally {
     isSubmitting.value = false
@@ -264,7 +275,7 @@ const { t } = useI18n()
             <button
               type="button"
               class="auth-link"
-              @click="$emit('switch-to-login')"
+              @click="emit('switch-to-login')"
             >
               {{ t('sign_in') }}
             </button>

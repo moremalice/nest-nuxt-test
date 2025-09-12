@@ -30,6 +30,11 @@ This document provides a comprehensive overview of the authentication and securi
 | | `csrf.controller.ts` | CSRF token generation endpoint |
 | | `csrf.service.ts` | Double-submit cookie CSRF implementation with mobile detection |
 | | `middleware/smart-csrf.middleware.ts` | Intelligent CSRF middleware with mobile bypass |
+| | `interfaces/recaptcha.interface.ts` | TypeScript interfaces for Google reCAPTCHA API |
+| | `strategies/recaptcha.strategy.ts` | Core reCAPTCHA validation logic with Google API |
+| | `guards/recaptcha.guard.ts` | NestJS guard for automatic reCAPTCHA endpoint protection |
+| | `decorators/recaptcha.decorator.ts` | `@Recaptcha()` and `@OptionalRecaptcha()` decorators |
+| | `dto/recaptcha.dto.ts` | Request/response DTOs for reCAPTCHA validation |
 
 ### Frontend Files (`/frontend/`)
 
@@ -40,10 +45,13 @@ This document provides a comprehensive overview of the authentication and securi
 | | `plugins/session-bus.client.ts` | Cross-tab session synchronization |
 | **Store** | `stores/auth.ts` | Auth state management, token refresh logic, CSRF management |
 | **Composables** | `composables/utils/useCsrf.ts` | CSRF composable proxy to Auth Store |
+| | `composables/utils/useRecaptcha.ts` | Smart reCAPTCHA token management and generation |
 | | `composables/utils/useApiHelper.ts` | API response types and error detection |
 | | `composables/api/useApi.ts` | API request wrapper functions |
 | **Middleware** | `middleware/auth.middleware.ts` | Route protection middleware |
 | **Components** | `components/auth/*` | Login/Register UI components |
+| | `components/common/RecaptchaCheckboxComponent.vue` | Interactive reCAPTCHA checkbox with countdown |
+| | `components/common/RecaptchaLoadingComponent.vue` | Loading indicator for reCAPTCHA operations |
 
 ## Authentication Flow
 
@@ -456,6 +464,181 @@ if (!success) {
 | Infinite refresh loop | Both tokens expired | Clear auth and redirect to login |
 | Rate limit exceeded | Too many requests | Implement exponential backoff |
 
+## reCAPTCHA Integration
+
+### Overview
+
+The application implements Google reCAPTCHA v3 with smart token management, interactive UI components, and seamless backend validation for enhanced bot protection.
+
+**Key Features:**
+- **Smart Token Management**: Automatic token reuse and expiry tracking (110-second lifecycle)
+- **Interactive Checkbox UI**: Enhanced user experience with real-time countdown
+- **Verification Limits**: Maximum 3 normal attempts with re-verification scenarios
+- **Backend Guard Protection**: Automatic validation via NestJS guards
+- **Mobile Client Support**: Consistent security across web and mobile platforms
+
+### Backend Implementation
+
+**File Structure:**
+```
+backend/src/module/security/
+├── interfaces/recaptcha.interface.ts    # TypeScript interfaces for Google API
+├── strategies/recaptcha.strategy.ts     # Core validation logic 
+├── guards/recaptcha.guard.ts           # NestJS guard for endpoint protection
+├── decorators/recaptcha.decorator.ts   # @Recaptcha() and @OptionalRecaptcha()
+└── dto/recaptcha.dto.ts               # Request/response DTOs
+```
+
+**Controller Integration:**
+```typescript
+@Post('register')
+@UseGuards(RecaptchaGuard)
+@OptionalRecaptcha({ action: 'register' })
+async register(@Body() registerDto: RegisterDto): Promise<RegisterResponseDto> {
+  // reCAPTCHA automatically validated by guard if token provided
+  return this.authService.register(registerDto)
+}
+```
+
+### Frontend Implementation
+
+**File Structure:**
+```
+frontend/app/
+├── composables/utils/useRecaptcha.ts              # Smart token management composable
+├── components/common/RecaptchaCheckboxComponent.vue   # Interactive checkbox UI
+├── components/common/RecaptchaLoadingComponent.vue    # Loading indicator
+└── components/auth/RegisterFormComponent.vue          # Integration example
+```
+
+**Smart Token Management:**
+```typescript
+// useRecaptcha.ts - Core composable
+export const useRecaptcha = () => {
+  // Token management with 110-second expiry
+  const isTokenValid = (): boolean => {
+    const elapsed = Date.now() - tokenGeneratedAt.value
+    return elapsed < TOKEN_EXPIRY_MS // 110 seconds
+  }
+
+  // Auto-reuse valid tokens or generate new ones
+  const getValidToken = async (action: string): Promise<RecaptchaResult> => {
+    if (isTokenValid()) {
+      return { success: true, token: currentToken.value! }
+    }
+    return await executeRecaptcha(action)
+  }
+}
+```
+
+**Component Integration:**
+```vue
+<!-- RecaptchaCheckboxComponent.vue -->
+<template>
+  <div class="recaptcha-checkbox-container">
+    <label class="checkbox-label">
+      <input type="checkbox" v-model="isChecked" @change="handleCheckboxChange" />
+      <span class="checkbox-custom" :class="checkboxStateClass">
+        <!-- Dynamic icons for loading/verified/error states -->
+      </span>
+      <div v-if="isVerified" class="verified-content">
+        ✓ Verified
+        <span v-if="displayTime > 0" class="token-expiry">
+          ({{ formatTime(displayTime) }})
+        </span>
+      </div>
+    </label>
+  </div>
+</template>
+```
+
+### Integration Patterns
+
+**1. Form Integration with Smart Token Handling:**
+```typescript
+const handleSubmit = async () => {
+  // Try to reuse valid token or auto-generate new one
+  let validToken = recaptchaToken.value
+  if (!validToken || !isTokenValid()) {
+    const result = await getValidToken('register')
+    if (!result.success) {
+      // Enable re-verification on checkbox
+      recaptchaCheckboxRef.value?.enableReVerification('token_expired')
+      return
+    }
+    validToken = result.token
+  }
+  
+  // Submit with token
+  await submitForm({ email, password, recaptchaToken: validToken })
+}
+```
+
+**2. Re-verification Scenarios:**
+```typescript
+// Enable re-verification after submission failures
+if (recaptchaCheckboxRef.value) {
+  recaptchaCheckboxRef.value.enableReVerification('submission_failed')
+}
+
+// Auto-enable re-verification on token expiry
+if (displayTime.value <= 0 && isVerified.value) {
+  enableReVerification('token_expired')
+}
+```
+
+### Environment Configuration
+
+**Backend (.env):**
+```bash
+RECAPTCHA_ENABLED=true                    # Enable/disable reCAPTCHA
+RECAPTCHA_SECRET_KEY=your_secret_key      # Google reCAPTCHA secret key
+RECAPTCHA_SCORE_THRESHOLD=0.5             # Minimum score (0.0-1.0)
+RECAPTCHA_VERIFY_URL=https://www.google.com/recaptcha/api/siteverify
+```
+
+**Frontend (.env):**
+```bash
+NUXT_RECAPTCHA_SITE_KEY=your_site_key     # Google reCAPTCHA site key
+```
+
+### Security Flow
+
+1. **Token Generation**: Client generates reCAPTCHA token for specific action
+2. **Smart Reuse**: Valid tokens are reused within 110-second window
+3. **Form Submission**: Token attached to request payload
+4. **Backend Validation**: RecaptchaGuard validates with Google API
+5. **Score Verification**: Checks against configured threshold
+6. **Request Processing**: Continues if validation passes
+
+### Testing Patterns
+
+**Backend Mock Testing:**
+```typescript
+beforeEach(() => {
+  jest.spyOn(recaptchaStrategy, 'validate').mockResolvedValue({
+    isValid: true,
+    score: 0.9,
+    action: 'register',
+    message: 'reCAPTCHA validation successful'
+  })
+})
+
+it('should reject registration with invalid reCAPTCHA', async () => {
+  jest.spyOn(recaptchaStrategy, 'validate').mockResolvedValue({
+    isValid: false,
+    message: 'reCAPTCHA verification failed: timeout-or-duplicate'
+  })
+  
+  const response = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send({ email: 'test@example.com', password: 'password', recaptchaToken: 'invalid-token' })
+    .expect(400)
+    
+  expectErrorResponse(response.body, 'BadRequestException', 'reCAPTCHA verification failed')
+})
+```
+
 ## Security Best Practices
 
 1. **Never expose secrets**: Keep JWT secrets and sensitive data server-side only
@@ -468,3 +651,5 @@ if (!success) {
 8. **Input validation**: Validate all inputs with DTOs and class-validator
 9. **Error sanitization**: Never expose internal errors to clients
 10. **Audit logging**: Log authentication events for security monitoring
+11. **reCAPTCHA protection**: Implement bot protection on sensitive endpoints
+12. **Smart token reuse**: Minimize reCAPTCHA friction with intelligent token management

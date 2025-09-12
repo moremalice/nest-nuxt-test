@@ -207,9 +207,11 @@ For complete authentication and security details, see: **[docs/auth-security-arc
 ## reCAPTCHA Integration Architecture
 
 **reCAPTCHA v3 Implementation:**
-- **Frontend Token Generation**: Client-side token generation with `useRecaptcha()` composable
+- **Smart Token Management**: Client-side token generation with reuse logic and expiry tracking
 - **Backend Validation**: Server-side verification via `RecaptchaGuard` with configurable thresholds
-- **Single Token Policy**: Each token used only once to prevent timeout-or-duplicate errors
+- **Interactive Checkbox UI**: Enhanced user experience with real-time countdown and status feedback
+- **Verification Limits**: Maximum 3 normal verification attempts with re-verification scenarios
+- **Auto Token Refresh**: Automatic token regeneration on expiry or failure
 - **Optional Integration**: Can be enabled/disabled via environment variables
 - **Action-based Validation**: Different actions (register, login, etc.) with specific score requirements
 
@@ -229,9 +231,11 @@ RECAPTCHA_SCORE_THRESHOLD=0.5
 
 **Frontend Architecture:**
 ```typescript
-// Token generation only (no pre-validation)
-const { executeRecaptcha, isRecaptchaReady } = useRecaptcha()
-const result = await executeRecaptcha('register')
+// Smart token management with reuse and expiry tracking
+const { executeRecaptcha, isRecaptchaReady, getValidToken, isTokenValid, tokenExpiresIn } = useRecaptcha()
+
+// Auto-reuse valid tokens or generate new ones
+const result = await getValidToken('register')
 
 // Backend handles all validation
 const registerData = { email, password, recaptchaToken: result.token }
@@ -247,9 +251,10 @@ const registerData = { email, password, recaptchaToken: result.token }
 - `dto/recaptcha.dto.ts` - Request/response DTOs for reCAPTCHA validation
 
 **Frontend reCAPTCHA Structure:**
-- `composables/utils/useRecaptcha.ts` - Vue composable for token generation
-- `components/common/RecaptchaStatusComponent.vue` - Status display component
-- `components/auth/RegisterFormComponent.vue` - Integration example
+- `composables/utils/useRecaptcha.ts` - Vue composable for smart token management and generation
+- `components/common/RecaptchaCheckboxComponent.vue` - Interactive checkbox component with real-time countdown
+- `components/common/RecaptchaLoadingComponent.vue` - Loading indicator for reCAPTCHA operations
+- `components/auth/RegisterFormComponent.vue` - Complete integration example with smart token handling
 
 **Security Flow:**
 1. **Client**: Generate reCAPTCHA token with specific action
@@ -284,30 +289,92 @@ async register(@Body() registerDto: RegisterDto): Promise<RegisterResponseDto> {
 ```
 
 **2. Frontend Integration:**
+
+**A. Checkbox Component Integration:**
+```vue
+<template>
+  <form @submit.prevent="handleSubmit">
+    <!-- Form inputs -->
+    <input v-model="email" type="email" required />
+    <input v-model="password" type="password" required />
+    
+    <!-- reCAPTCHA Checkbox Component -->
+    <RecaptchaCheckboxComponent
+      ref="recaptchaCheckboxRef"
+      v-model="recaptchaValidated"
+      action="register"
+      :show-retry="true"
+      @verified="handleRecaptchaVerified"
+      @error="handleRecaptchaError"
+    />
+    
+    <button type="submit" :disabled="!formValid || isSubmitting">
+      {{ isSubmitting ? 'Submitting...' : 'Register' }}
+    </button>
+  </form>
+</template>
+
+<script setup>
+const { getValidToken, isTokenValid } = useRecaptcha()
+const recaptchaCheckboxRef = ref()
+const recaptchaValidated = ref(false)
+const recaptchaToken = ref(null)
+
+// Smart token management on form submit
+const handleSubmit = async () => {
+  // Try to reuse valid token or auto-generate new one
+  let validToken = recaptchaToken.value
+  if (!validToken || !isTokenValid()) {
+    const result = await getValidToken('register')
+    if (!result.success) {
+      // Enable re-verification on checkbox
+      recaptchaCheckboxRef.value?.enableReVerification('token_expired')
+      return
+    }
+    validToken = result.token
+  }
+  
+  // Submit with token
+  await submitForm({ email, password, recaptchaToken: validToken })
+}
+
+const handleRecaptchaVerified = (token) => {
+  recaptchaToken.value = token
+  recaptchaValidated.value = true
+}
+
+const handleRecaptchaError = (error) => {
+  recaptchaValidated.value = false
+  recaptchaToken.value = null
+}
+</script>
+```
+
+**B. Manual Token Generation:**
 ```vue
 <template>
   <div class="form-container">
-    <RecaptchaStatusComponent
-      :is-recaptcha-ready="isRecaptchaReady"
-      :is-executing="isExecuting"
-      :last-error="lastError"
-    />
-    
-    <button v-if="!recaptchaValidated" @click="generateToken">
-      reCAPTCHA 토큰 생성하기
+    <button v-if="!recaptchaValidated" @click="generateToken" :disabled="isExecuting">
+      {{ isExecuting ? 'Generating...' : 'Verify reCAPTCHA' }}
     </button>
     
-    <button v-else @click="submitForm" :disabled="isSubmitting">
-      회원가입
+    <div v-else class="verified-status">
+      ✓ Verified (expires in {{ tokenExpiresIn }}s)
+    </div>
+    
+    <button @click="submitForm" :disabled="!recaptchaValidated || isSubmitting">
+      Submit Form
     </button>
   </div>
 </template>
 
 <script setup>
-const { executeRecaptcha, isRecaptchaReady, isExecuting, lastError } = useRecaptcha()
+const { getValidToken, isExecuting, tokenExpiresIn, isTokenValid } = useRecaptcha()
+const recaptchaValidated = ref(false)
+const recaptchaToken = ref(null)
 
 const generateToken = async () => {
-  const result = await executeRecaptcha('register')
+  const result = await getValidToken('register')
   if (result.success) {
     recaptchaToken.value = result.token
     recaptchaValidated.value = true

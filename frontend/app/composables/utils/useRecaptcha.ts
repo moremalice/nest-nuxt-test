@@ -301,6 +301,14 @@ export const useRecaptcha = () => {
     return result
   }
 
+  // Token expiry countdown in seconds
+  const tokenExpiresIn = computed(() => {
+    if (!tokenGeneratedAt.value || !currentToken.value) return 0
+    const elapsed = Date.now() - tokenGeneratedAt.value
+    const remaining = TOKEN_EXPIRY_MS - elapsed
+    return Math.max(0, Math.floor(remaining / 1000))
+  })
+
   return {
     isRecaptchaReady: readonly(isRecaptchaReady),
     isExecuting: readonly(isExecuting),
@@ -312,7 +320,8 @@ export const useRecaptcha = () => {
     getValidToken,
     clearToken,
     isTokenValid,
-    currentToken: readonly(currentToken)
+    currentToken: readonly(currentToken),
+    tokenExpiresIn: readonly(tokenExpiresIn)
   }
 }
 
