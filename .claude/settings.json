@@ -11,11 +11,11 @@
     "ask": [
       "Bash(npm run *)",
       "Bash(pnpm run *)",
-      "Bash(yarn *)"
+      "Bash(yarn *)",
+      "Bash(curl:*)"
     ],
     "deny": [
       "WebFetch",
-      "Bash(curl:*)",
 
       "Read(/.git/**)",
       "Read(/.idea/**)",
