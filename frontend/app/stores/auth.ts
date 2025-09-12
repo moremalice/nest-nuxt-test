@@ -14,6 +14,7 @@ interface LoginData {
 interface RegisterData {
   email: string
   password: string
+  recaptchaToken?: string
 }
 
 // API 응답 타입들

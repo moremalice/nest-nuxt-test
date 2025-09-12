@@ -11,6 +11,8 @@ import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { RecaptchaStrategy } from './strategies/recaptcha.strategy';
+import { RecaptchaGuard } from './guards/recaptcha.guard';
 import { JwtConfigService } from './jwt-config.service';
 import { throttlerConfigs } from '../../config';
 
@@ -26,7 +28,7 @@ import { throttlerConfigs } from '../../config';
     TypeOrmModule.forFeature([User], 'test_user_db'),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy, JwtConfigService],
-  exports: [AuthService, JwtStrategy, PassportModule, JwtConfigService],
+  providers: [AuthService, JwtStrategy, JwtRefreshStrategy, RecaptchaStrategy, RecaptchaGuard, JwtConfigService],
+  exports: [AuthService, JwtStrategy, RecaptchaStrategy, RecaptchaGuard, PassportModule, JwtConfigService],
 })
 export class AuthModule {}

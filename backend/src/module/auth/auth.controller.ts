@@ -14,6 +14,9 @@ import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthenticatedRequest } from './interfaces/auth-request.interface';
 import { ClientType, GetClientType } from './decorators/client-type.decorator';
+import { RecaptchaValidationDto, RecaptchaValidationResultDto, DemoFormSubmissionDto } from './dto/recaptcha.dto';
+import { Recaptcha, OptionalRecaptcha } from './decorators/recaptcha.decorator';
+import { RecaptchaGuard } from './guards/recaptcha.guard';
 
 @ApiTags('AUTH')
 @Controller('auth')
@@ -24,11 +27,12 @@ export class AuthController {
     ) {}
 
     @Post('register')
-    @UseGuards(ProxyAwareThrottlerGuard)
+    @UseGuards(RecaptchaGuard, ProxyAwareThrottlerGuard)
+    @OptionalRecaptcha({ action: 'register' })
     @Throttle({ register: { ttl: 60000, limit: 5 } }) // 분당 5회 시도 제한
     @ApiOperation({
         summary: '회원가입',
-        description: '웹: CSRF Token 필수 | 모바일: X-Client-Type: mobile'
+        description: '웹: CSRF Token 필수 | 모바일: X-Client-Type: mobile | reCAPTCHA: 선택적 검증'
     })
     @ApiResponse({
         status: 201,
@@ -36,11 +40,12 @@ export class AuthController {
         type: RegisterResponseDto,
     })
     @ApiResponse({ status: 409, description: '이미 존재하는 이메일' })
-    @ApiResponse({ status: 400, description: '잘못된 요청' })
+    @ApiResponse({ status: 400, description: '잘못된 요청 또는 reCAPTCHA 검증 실패' })
     @ApiResponse({ status: 403, description: 'CSRF Token 오류 (웹 전용)' })
     @ApiResponse({ status: 429, description: '너무 많은 시도' })
     async register(
         @Body() registerDto: RegisterDto,
+        @Req() request: Request & { recaptchaResult?: any }
     ): Promise<RegisterResponseDto> {
         const result = await this.authService.register(registerDto);
         // 회원가입 성공 시 생성된 사용자 정보 반환
@@ -243,6 +248,80 @@ export class AuthController {
         return {
             user: userProfile,
         };
+    }
+
+    @Post('validate-recaptcha')
+    @UseGuards(ProxyAwareThrottlerGuard)
+    @Throttle({ recaptcha: { ttl: 60000, limit: 30 } })
+    @ApiOperation({
+        summary: 'reCAPTCHA 토큰 검증 (분리된 엔드포인트)',
+        description: '회원가입 전 reCAPTCHA 토큰을 미리 검증합니다'
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'reCAPTCHA 검증 성공',
+        type: RecaptchaValidationResultDto,
+    })
+    @ApiResponse({ status: 400, description: 'reCAPTCHA 검증 실패' })
+    @ApiResponse({ status: 429, description: '너무 많은 요청' })
+    async validateRecaptcha(
+        @Body() recaptchaDto: RecaptchaValidationDto,
+        @Req() request: Request & { ip?: string }
+    ): Promise<RecaptchaValidationResultDto> {
+        // Import and use RecaptchaStrategy directly
+        const { RecaptchaStrategy } = await import('./strategies/recaptcha.strategy')
+        const recaptchaStrategy = new RecaptchaStrategy(this.configService)
+        
+        const result = await recaptchaStrategy.validate(
+            recaptchaDto.recaptchaToken,
+            request.ip || (request as any).connection?.remoteAddress,
+            recaptchaDto.expectedAction
+        )
+        
+        return {
+            isValid: result?.isValid ?? false,
+            score: result?.score,
+            action: result?.action,
+            hostname: result?.hostname,
+            message: result?.message || 'reCAPTCHA validation completed'
+        }
+    }
+
+    @Post('demo-form')
+    @UseGuards(RecaptchaGuard, ProxyAwareThrottlerGuard)
+    @OptionalRecaptcha({ action: 'demo_submit' })
+    @Throttle({ demo: { ttl: 60000, limit: 20 } })
+    @ApiOperation({
+        summary: '데모 폼 제출 (선택적 reCAPTCHA)',
+        description: 'reCAPTCHA가 비활성화되어 있어도 동작하는 데모 엔드포인트'
+    })
+    @ApiResponse({
+        status: 200,
+        description: '폼 제출 성공',
+        type: DemoFormSubmissionDto
+    })
+    @ApiResponse({ status: 400, description: '잘못된 요청' })
+    async submitDemoForm(
+        @Body() formData: any,
+        @Req() request: Request & { recaptchaResult?: any }
+    ): Promise<DemoFormSubmissionDto> {
+        const recaptchaResult = request.recaptchaResult
+        
+        return {
+            success: true,
+            message: 'Form submitted successfully',
+            submittedData: {
+                ...formData,
+                timestamp: new Date().toISOString()
+            },
+            recaptchaResult: recaptchaResult ? {
+                isValid: recaptchaResult.isValid,
+                score: recaptchaResult.score,
+                action: recaptchaResult.action,
+                hostname: recaptchaResult.hostname,
+                message: recaptchaResult.message
+            } : { message: 'reCAPTCHA not validated (disabled or optional)' }
+        }
     }
 
     @Get('test')

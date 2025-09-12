@@ -2,8 +2,8 @@
   <div class="recaptcha-container">
     <div v-if="showBranding" class="recaptcha-branding">
       <p class="branding-text">
-        이 사이트는 reCAPTCHA에 의해 보호되며 Google의 
-        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">개인정보처리방침</a>과 
+        이 사이트는 reCAPTCHA에 의해 보호
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">개인정보처리방침</a>과
         <a href="https://policies.google.com/terms" target="_blank" rel="noopener">서비스 약관</a>이 적용됩니다.
       </p>
     </div>
@@ -29,6 +29,7 @@ interface Props {
   showDebug?: boolean
   autoExecute?: boolean
   action?: string
+  disabled?: boolean
 }
 
 interface RecaptchaStatus {
@@ -41,7 +42,8 @@ const props = withDefaults(defineProps<Props>(), {
   showStatus: true,
   showDebug: false,
   autoExecute: false,
-  action: 'verify'
+  action: 'verify',
+  disabled: false
 })
 
 const emit = defineEmits<{
@@ -50,11 +52,13 @@ const emit = defineEmits<{
   error: [error: string]
 }>()
 
-const { executeRecaptcha, isRecaptchaLoaded } = useRecaptcha()
+const { executeRecaptcha, isRecaptchaLoaded, initializeRecaptcha } = useRecaptcha()
 
 const status = ref<string>('')
 const statusType = ref<RecaptchaStatus['type']>('loading')
 const debugInfo = ref<any>(null)
+const isReady = ref<boolean>(false)
+const isExecuting = ref<boolean>(false)
 
 const statusClass = computed(() => ({
   'status-loading': statusType.value === 'loading',
@@ -79,6 +83,12 @@ const updateStatus = (type: RecaptchaStatus['type'], message: string) => {
 }
 
 const executeAction = async (action: string = props.action): Promise<string | null> => {
+  if (props.disabled || isExecuting.value) {
+    console.warn('reCAPTCHA는 현재 비활성화되어 있거나 실행 중입니다.')
+    return null
+  }
+
+  isExecuting.value = true
   updateStatus('loading', 'reCAPTCHA 처리 중...')
   
   try {
@@ -90,7 +100,9 @@ const executeAction = async (action: string = props.action): Promise<string | nu
         timestamp: new Date().toISOString(),
         success: result.success,
         tokenLength: result.token?.length || 0,
-        error: result.error
+        error: result.error,
+        disabled: props.disabled,
+        ready: isReady.value
       }
     }
     
@@ -109,22 +121,37 @@ const executeAction = async (action: string = props.action): Promise<string | nu
     updateStatus('error', errorMsg)
     emit('error', errorMsg)
     return null
+  } finally {
+    isExecuting.value = false
   }
 }
 
 const checkReady = async () => {
   try {
+    if (props.disabled) {
+      updateStatus('ready', 'reCAPTCHA 비활성화됨')
+      isReady.value = false
+      return
+    }
+
     const isLoaded = await isRecaptchaLoaded()
     if (isLoaded) {
+      isReady.value = true
       updateStatus('ready', 'reCAPTCHA 준비 완료')
       emit('ready')
       
-      if (props.autoExecute) {
+      if (props.autoExecute && !props.disabled) {
         await executeAction()
       }
+    } else {
+      isReady.value = false
+      updateStatus('error', 'reCAPTCHA 로드 실패')
     }
   } catch (error) {
-    updateStatus('error', 'reCAPTCHA 로드 실패')
+    isReady.value = false
+    const errorMsg = error instanceof Error ? error.message : 'reCAPTCHA 초기화 오류'
+    updateStatus('error', errorMsg)
+    console.error('reCAPTCHA 초기화 오류:', error)
   }
 }
 
@@ -135,7 +162,9 @@ onMounted(async () => {
 
 defineExpose({
   executeAction,
-  checkReady
+  checkReady,
+  isReady: readonly(isReady),
+  isExecuting: readonly(isExecuting)
 })
 </script>
 

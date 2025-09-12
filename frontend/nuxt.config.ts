@@ -33,11 +33,11 @@ export default defineNuxtConfig({
 
     // QR 코드 설정
     qrcode: {
-        errorCorrectionLevel: 'M',
-        width: 200,
-        color: {
-            dark: '#000000',
-            light: '#ffffff'
+        options: {
+            ecc: 'medium',
+            blackColor: '#000000',
+            whiteColor: '#ffffff',
+            border: 2
         }
     },
 
@@ -164,7 +164,7 @@ export default defineNuxtConfig({
         },
         // === 프록시 설정 ===
         '/api/proxy/**': {
-            proxy: 'https://pikitalk.com/data/**',
+            proxy: `${process.env.NUXT_PUBLIC_SITE_URL}/data/**`,
             headers: {
                 'access-control-allow-origin': '*',
                 'cache-control': 'public, max-age=3600'
@@ -173,11 +173,16 @@ export default defineNuxtConfig({
     },
 
     runtimeConfig: {
+        // 서버 전용 (비공개)
+        NUXT_RECAPTCHA_SECRET_KEY: process.env.NUXT_RECAPTCHA_SECRET_KEY,
+
+        // 클라이언트 노출 (공개)
         public: {
-            NUXT_APP_ENVIRONMENT: process.env.NUXT_PUBLIC_APP_ENV || 'development',
+            NUXT_APP_ENVIRONMENT: process.env.NUXT_PUBLIC_APP_ENV || 'local',
             NUXT_API_BASE_URL: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3020',
-            siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
-            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY,
+            NUXT_APP_SITE_URL: process.env.NUXT_PUBLIC_SITE_URL,
+            NUXT_RECAPTCHA_SITE_KEY: process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY,
+            NUXT_RECAPTCHA_TEST_KEY: process.env.NUXT_PUBLIC_RECAPTCHA_TEST_KEY,
         }
     }
 })

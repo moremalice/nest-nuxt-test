@@ -1,62 +1,285 @@
-import { useReCaptcha } from 'vue-recaptcha-v3'
+import { ref, readonly } from 'vue'
+
+type RecaptchaInstance = {
+  ready: (callback: () => void) => void
+  execute: (siteKey: string, options: { action: string }) => Promise<string>
+  render: (elementId: string, options: any) => string
+}
 
 interface RecaptchaResult {
-  token: string | null
   success: boolean
+  token?: string
   error?: string
 }
 
+let recaptchaInstance: RecaptchaInstance | null = null
+let isScriptLoaded = false
+let isLoading = false
+let loadingPromise: Promise<boolean> | null = null
+
 export const useRecaptcha = () => {
-  const recaptchaInstance = useReCaptcha()
+  const isRecaptchaReady = ref(false)
+  const isExecuting = ref(false)
+  const lastError = ref<string | null>(null)
 
-  const executeRecaptcha = async (action: string = 'submit'): Promise<RecaptchaResult> => {
+  const config = useRuntimeConfig()
+  const configSiteKey = config.public.NUXT_RECAPTCHA_SITE_KEY
+  
+  // Use single site key for all environments
+  const siteKey = configSiteKey || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+  
+  console.log('reCAPTCHA: Using site key:', siteKey.substring(0, 20) + '...')
+
+  // Dynamically load reCAPTCHA script
+  const loadRecaptchaScript = async (): Promise<boolean> => {
+    if (isScriptLoaded) return true
+    if (isLoading && loadingPromise) return loadingPromise
+
+    isLoading = true
+    loadingPromise = new Promise((resolve) => {
+      try {
+        // Check if script already exists
+        const existingScript = document.querySelector('script[src*="recaptcha"]')
+        if (existingScript) {
+          console.log('reCAPTCHA script already exists')
+          isScriptLoaded = true
+          isLoading = false
+          resolve(true)
+          return
+        }
+
+        const scriptUrl = `https://www.google.com/recaptcha/api.js?render=${siteKey}&hl=ko`
+        console.log('Loading reCAPTCHA script from:', scriptUrl)
+
+        const script = document.createElement('script')
+        script.src = scriptUrl
+        script.async = true
+        script.defer = true
+
+        let timeoutId: NodeJS.Timeout
+
+        const cleanup = () => {
+          if (timeoutId) clearTimeout(timeoutId)
+          isLoading = false
+        }
+
+        script.onload = () => {
+          cleanup()
+          isScriptLoaded = true
+          console.log('reCAPTCHA script loaded successfully')
+          resolve(true)
+        }
+
+        script.onerror = (error) => {
+          cleanup()
+          isScriptLoaded = false
+          console.error('Failed to load reCAPTCHA script from:', scriptUrl)
+          console.error('This might be due to:')
+          console.error('1. Network connectivity issues')
+          console.error('2. Invalid reCAPTCHA site key')
+          console.error('3. Domain not registered with reCAPTCHA')
+          console.error('4. Firewall or ad blocker interference')
+          console.error('Error details:', error)
+          
+          resolve(false)
+        }
+
+        // Set a timeout for loading
+        timeoutId = setTimeout(() => {
+          cleanup()
+          isScriptLoaded = false
+          console.error('reCAPTCHA script loading timeout after 10 seconds')
+          resolve(false)
+        }, 10000)
+
+        // Add additional debugging
+        console.log('Appending reCAPTCHA script to head')
+        document.head.appendChild(script)
+        
+      } catch (error) {
+        isScriptLoaded = false
+        isLoading = false
+        console.error('Exception while loading reCAPTCHA script:', error)
+        resolve(false)
+      }
+    })
+
+    return loadingPromise
+  }
+
+  // Initialize reCAPTCHA instance
+  const initializeRecaptcha = async (): Promise<boolean> => {
+    if (!import.meta.client) {
+      console.log('reCAPTCHA: Not running on client side')
+      return false
+    }
+
+    console.log('reCAPTCHA: Starting initialization...')
+    console.log('reCAPTCHA: Site key:', siteKey)
+
     try {
-      if (!recaptchaInstance) {
-        return {
-          token: null,
-          success: false,
-          error: 'reCAPTCHA 인스턴스를 찾을 수 없습니다.'
-        }
+      const scriptLoaded = await loadRecaptchaScript()
+      if (!scriptLoaded) {
+        lastError.value = 'Failed to load reCAPTCHA script'
+        console.error('reCAPTCHA: Script loading failed')
+        return false
       }
 
-      await recaptchaInstance.recaptchaLoaded()
-      
-      const token = await recaptchaInstance.executeRecaptcha(action)
-      
-      if (!token) {
-        return {
-          token: null,
-          success: false,
-          error: 'reCAPTCHA 토큰을 생성할 수 없습니다.'
-        }
-      }
+      console.log('reCAPTCHA: Script loaded successfully, waiting for grecaptcha...')
 
-      return {
-        token,
-        success: true
-      }
+      // Wait for grecaptcha to be available
+      return new Promise((resolve) => {
+        let attempts = 0
+        const maxAttempts = 100 // 10 seconds at 100ms intervals
+        
+        const checkGrecaptcha = () => {
+          attempts++
+          console.log(`reCAPTCHA: Checking grecaptcha availability (attempt ${attempts}/${maxAttempts})`)
+          
+          if (window.grecaptcha && window.grecaptcha.ready) {
+            console.log('reCAPTCHA: grecaptcha found, calling ready()...')
+            window.grecaptcha.ready(() => {
+              recaptchaInstance = window.grecaptcha as RecaptchaInstance
+              isRecaptchaReady.value = true
+              console.log('reCAPTCHA initialized successfully with key:', siteKey.substring(0, 20) + '...')
+              resolve(true)
+            })
+          } else if (attempts < maxAttempts) {
+            console.log('reCAPTCHA: grecaptcha not ready yet, retrying...')
+            setTimeout(checkGrecaptcha, 100)
+          } else {
+            lastError.value = 'reCAPTCHA initialization timeout - grecaptcha not found'
+            console.error('reCAPTCHA: Timeout - grecaptcha never became available')
+            resolve(false)
+          }
+        }
+        
+        checkGrecaptcha()
+      })
     } catch (error) {
-      console.error('reCAPTCHA 실행 오류:', error)
-      return {
-        token: null,
-        success: false,
-        error: error instanceof Error ? error.message : 'reCAPTCHA 실행 중 오류가 발생했습니다.'
-      }
+      lastError.value = error instanceof Error ? error.message : 'reCAPTCHA initialization error'
+      console.error('reCAPTCHA initialization error:', error)
+      return false
     }
   }
 
+  // Check if reCAPTCHA is ready
   const isRecaptchaLoaded = async (): Promise<boolean> => {
+    if (isRecaptchaReady.value && recaptchaInstance) return true
+    
+    return await initializeRecaptcha()
+  }
+
+  // Execute reCAPTCHA and return token
+  const executeRecaptcha = async (action: string = 'submit'): Promise<RecaptchaResult> => {
+    if (isExecuting.value) {
+      console.log('reCAPTCHA: Already executing, skipping...')
+      return {
+        success: false,
+        error: 'reCAPTCHA is already executing'
+      }
+    }
+
     try {
-      if (!recaptchaInstance) return false
-      return await recaptchaInstance.recaptchaLoaded()
+      isExecuting.value = true
+      lastError.value = null
+      console.log(`reCAPTCHA: Starting token generation for action: ${action}`)
+
+      // Initialize reCAPTCHA if not ready
+      const ready = await isRecaptchaLoaded()
+      if (!ready || !recaptchaInstance) {
+        console.error('reCAPTCHA: Instance not ready or failed to initialize')
+        console.error('reCAPTCHA: ready =', ready)
+        console.error('reCAPTCHA: recaptchaInstance =', recaptchaInstance)
+        return {
+          success: false,
+          error: 'reCAPTCHA not ready or failed to initialize'
+        }
+      }
+
+      console.log('reCAPTCHA: Instance ready, executing with site key:', siteKey)
+      console.log('reCAPTCHA: Action:', action)
+      console.log('reCAPTCHA: recaptchaInstance.execute type:', typeof recaptchaInstance.execute)
+      console.log('reCAPTCHA: window.grecaptcha:', window.grecaptcha)
+
+      const token = await recaptchaInstance.execute(siteKey, { action })
+      
+      console.log('reCAPTCHA: Execute completed, token:', token ? 'received' : 'null')
+      console.log('reCAPTCHA: Token length:', token ? token.length : 0)
+      
+      if (!token || typeof token !== 'string' || token.trim() === '') {
+        console.error('reCAPTCHA: Token generation failed - invalid token received')
+        console.error('reCAPTCHA: Token value:', token)
+        console.error('reCAPTCHA: Token type:', typeof token)
+        return {
+          success: false,
+          error: 'Token generation failed - invalid token received'
+        }
+      }
+
+      console.log('reCAPTCHA token generated successfully for action:', action)
+      return {
+        success: true,
+        token
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'reCAPTCHA execution error'
+      lastError.value = errorMessage
+      console.error('reCAPTCHA execution error:', error)
+      console.error('reCAPTCHA execution error stack:', error?.stack)
+      return {
+        success: false,
+        error: errorMessage
+      }
+    } finally {
+      isExecuting.value = false
+    }
+  }
+
+  // Validate token with backend
+  const validateToken = async (token: string, action: string = 'submit'): Promise<boolean> => {
+    try {
+      const response = await useApi<{
+        isValid: boolean
+        score?: number
+        action?: string
+        message?: string
+      }>('/auth/validate-recaptcha', {
+        recaptchaToken: token,
+        expectedAction: action
+      })
+
+      if (response.status === 'success') {
+        console.log('reCAPTCHA validation result:', {
+          isValid: response.data.isValid,
+          score: response.data.score,
+          action: response.data.action
+        })
+        return response.data.isValid
+      }
+
+      console.warn('reCAPTCHA validation failed:', response.data)
+      return false
     } catch (error) {
-      console.error('reCAPTCHA 로드 상태 확인 오류:', error)
+      console.error('reCAPTCHA validation API error:', error)
       return false
     }
   }
 
   return {
+    isRecaptchaReady: readonly(isRecaptchaReady),
+    isExecuting: readonly(isExecuting),
+    lastError: readonly(lastError),
     executeRecaptcha,
-    isRecaptchaLoaded
+    validateToken,
+    isRecaptchaLoaded,
+    initializeRecaptcha
+  }
+}
+
+// Global type declaration
+declare global {
+  interface Window {
+    grecaptcha: RecaptchaInstance
   }
 }

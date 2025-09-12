@@ -193,14 +193,174 @@ For detailed implementation patterns and examples:
 - **JWT Dual-Token**: Access Token (15min, Bearer) + Refresh Token (12hr, HttpOnly Cookie)
 - **Smart CSRF Protection**: Auth Store integrated double-submit pattern with 10-minute token lifecycle
 - **Mobile Client Support**: Automatic CSRF bypass for mobile apps via X-Client-Type header
+- **reCAPTCHA Integration**: Google reCAPTCHA v3 with configurable score thresholds and action validation
 - **Auto Features**: Token refresh, retry logic, cross-tab session sync, loading states, exponential backoff
-- **Unified Security**: CSRF and Auth managed in single Pinia store for consistency and SSR safety
+- **Unified Security**: CSRF, Auth, and reCAPTCHA managed with consistent patterns for SSR safety
 
 **Key Files for Auth/Security:**
 - **Backend**: `/backend/src/module/auth/`, `/backend/src/module/security/`
 - **Frontend**: `app/plugins/api.ts`, `app/stores/auth.ts` (includes CSRF), `app/composables/utils/useCsrf.ts` (Auth Store proxy)
+- **reCAPTCHA**: `app/composables/utils/useRecaptcha.ts`, `app/components/common/RecaptchaStatusComponent.vue`
 
 For complete authentication and security details, see: **[docs/auth-security-architecture.md](docs/auth-security-architecture.md)**
+
+## reCAPTCHA Integration Architecture
+
+**reCAPTCHA v3 Implementation:**
+- **Frontend Token Generation**: Client-side token generation with `useRecaptcha()` composable
+- **Backend Validation**: Server-side verification via `RecaptchaGuard` with configurable thresholds
+- **Single Token Policy**: Each token used only once to prevent timeout-or-duplicate errors
+- **Optional Integration**: Can be enabled/disabled via environment variables
+- **Action-based Validation**: Different actions (register, login, etc.) with specific score requirements
+
+**Core reCAPTCHA Components:**
+
+**Backend Architecture:**
+```typescript
+// Guard-based protection with decorators
+@OptionalRecaptcha({ action: 'register' })
+@UseGuards(RecaptchaGuard)
+
+// Environment-driven configuration
+RECAPTCHA_ENABLED=true
+RECAPTCHA_SECRET_KEY=your_secret_key
+RECAPTCHA_SCORE_THRESHOLD=0.5
+```
+
+**Frontend Architecture:**
+```typescript
+// Token generation only (no pre-validation)
+const { executeRecaptcha, isRecaptchaReady } = useRecaptcha()
+const result = await executeRecaptcha('register')
+
+// Backend handles all validation
+const registerData = { email, password, recaptchaToken: result.token }
+```
+
+**Key Implementation Files:**
+
+**Backend reCAPTCHA Structure:**
+- `interfaces/recaptcha.interface.ts` - TypeScript interfaces for Google API integration
+- `strategies/recaptcha.strategy.ts` - Core validation logic with Google reCAPTCHA API
+- `guards/recaptcha.guard.ts` - NestJS guard for automatic endpoint protection
+- `decorators/recaptcha.decorator.ts` - `@Recaptcha()` and `@OptionalRecaptcha()` decorators
+- `dto/recaptcha.dto.ts` - Request/response DTOs for reCAPTCHA validation
+
+**Frontend reCAPTCHA Structure:**
+- `composables/utils/useRecaptcha.ts` - Vue composable for token generation
+- `components/common/RecaptchaStatusComponent.vue` - Status display component
+- `components/auth/RegisterFormComponent.vue` - Integration example
+
+**Security Flow:**
+1. **Client**: Generate reCAPTCHA token with specific action
+2. **Client**: Submit form with token attached
+3. **Server**: `RecaptchaGuard` validates token with Google
+4. **Server**: Check score threshold and action match
+5. **Server**: Process request if validation passes
+
+**Environment Configuration:**
+```bash
+# Backend reCAPTCHA Settings
+RECAPTCHA_ENABLED=true                    # Enable/disable reCAPTCHA
+RECAPTCHA_SECRET_KEY=your_secret_key      # Google reCAPTCHA secret key
+RECAPTCHA_SCORE_THRESHOLD=0.5             # Minimum score (0.0-1.0)
+RECAPTCHA_VERIFY_URL=https://www.google.com/recaptcha/api/siteverify
+
+# Frontend reCAPTCHA Settings
+NUXT_RECAPTCHA_SITE_KEY=your_site_key     # Google reCAPTCHA site key
+```
+
+**reCAPTCHA Integration Patterns:**
+
+**1. Controller Integration:**
+```typescript
+@Post('register')
+@UseGuards(RecaptchaGuard)
+@OptionalRecaptcha({ action: 'register' })
+async register(@Body() registerDto: RegisterDto): Promise<RegisterResponseDto> {
+  // reCAPTCHA automatically validated by guard if token provided
+  return this.authService.register(registerDto)
+}
+```
+
+**2. Frontend Integration:**
+```vue
+<template>
+  <div class="form-container">
+    <RecaptchaStatusComponent
+      :is-recaptcha-ready="isRecaptchaReady"
+      :is-executing="isExecuting"
+      :last-error="lastError"
+    />
+    
+    <button v-if="!recaptchaValidated" @click="generateToken">
+      reCAPTCHA 토큰 생성하기
+    </button>
+    
+    <button v-else @click="submitForm" :disabled="isSubmitting">
+      회원가입
+    </button>
+  </div>
+</template>
+
+<script setup>
+const { executeRecaptcha, isRecaptchaReady, isExecuting, lastError } = useRecaptcha()
+
+const generateToken = async () => {
+  const result = await executeRecaptcha('register')
+  if (result.success) {
+    recaptchaToken.value = result.token
+    recaptchaValidated.value = true
+  }
+}
+</script>
+```
+
+**3. Error Handling Pattern:**
+```typescript
+// Backend - RecaptchaGuard error handling
+if (!result.isValid) {
+  this.logger.warn(`reCAPTCHA validation failed: ${result.message}`)
+  throw new BadRequestException(`reCAPTCHA verification failed: ${result.errorCodes?.join(', ') || 'Unknown error'}`)
+}
+
+// Frontend - Error handling
+catch (error: any) {
+  console.error('reCAPTCHA token generation error:', error)
+  errorMessage.value = 'reCAPTCHA 토큰 생성 중 오류가 발생했습니다'
+  // Reset validation state on error
+  recaptchaValidated.value = false
+  recaptchaToken.value = null
+}
+```
+
+**4. Testing Patterns:**
+```typescript
+// Backend testing with reCAPTCHA mocking
+beforeEach(() => {
+  jest.spyOn(recaptchaStrategy, 'validate').mockResolvedValue({
+    isValid: true,
+    score: 0.9,
+    action: 'register',
+    message: 'reCAPTCHA validation successful'
+  })
+})
+
+// Test with invalid reCAPTCHA
+it('should reject registration with invalid reCAPTCHA', async () => {
+  jest.spyOn(recaptchaStrategy, 'validate').mockResolvedValue({
+    isValid: false,
+    message: 'reCAPTCHA verification failed: timeout-or-duplicate'
+  })
+  
+  const response = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send({ email: 'test@example.com', password: 'password', recaptchaToken: 'invalid-token' })
+    .expect(400)
+    
+  expectErrorResponse(response.body, 'BadRequestException', 'reCAPTCHA verification failed')
+})
+```
 
 ## API Communication Architecture
 
@@ -246,6 +406,7 @@ frontend/.env.production    # Production build
 - `DB_*`: Multi-database connection settings for different data sources
 - `JWT_*_SECRET`: JWT token secrets for access/refresh tokens
 - `CSRF_*`: CSRF protection configuration parameters
+- `RECAPTCHA_*`: reCAPTCHA configuration (enabled, keys, thresholds)
 
 **Port Cleanup:**
 For detailed port management commands and troubleshooting, see: **[docs/port-management.md](docs/port-management.md)**
