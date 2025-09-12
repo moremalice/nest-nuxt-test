@@ -1,40 +1,80 @@
 {
-  "exclude": [
-    "**/node_modules/",
-    "**/package-lock.json",
-    "**/yarn.lock",
-    "**/dist/",
-    "**/build/",
-    "**/.nuxt/",
-    "**/.output/",
-    "**/coverage/",
-    "**/tsconfig.tsbuildinfo",
-    "**/.vscode/",
-    "**/.idea/",
-    "**/*.swp",
-    "**/*.swo",
-    "**/*~",
-    "**/.DS_Store",
-    "**/Thumbs.db",
-    "**/logs/",
-    "**/*.log",
-    "**/npm-debug.log*",
-    "**/public/img/**/*.{jpg,jpeg,png,gif,svg,webp}",
-    "**/public/css/font/**",
-    "**/public/plugins/**",
-    "**/public/js/html5.js",
-    "**/public/js_dev/**",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/test/",
-    "**/__tests__/",
-    "**/CHANGELOG.md",
-    "**/nest-cli.json",
-    "**/eslint.config.mjs",
-    "**/tsconfig.build.json",
-    "**/common/decorators/",
-    "**/common/guards/",
-    "**/shared/constants/",
-    "**/shared/enums/"
-  ]
+  "permissions": {
+    "defaultMode": "default",
+    "additionalDirectories": ["frontend", "backend", "docs"],
+    "allow": [
+      "Read(/frontend/**)",
+      "Read(/backend/**)",
+      "Read(/docs/**)",
+      "Read(/CLAUDE.md)"
+    ],
+    "ask": [
+      "Bash(npm run *)",
+      "Bash(pnpm run *)",
+      "Bash(yarn *)"
+    ],
+    "deny": [
+      "WebFetch",
+      "Bash(curl:*)",
+
+      "Read(/.git/**)",
+      "Read(/.idea/**)",
+      "Read(/.vscode/**)",
+
+      "Read(/**/.env)",
+      "Read(/**/.env.*)",
+      "Read(/**/.envrc)",
+      "Read(/secrets/**)",
+
+      "Read(/node_modules/**)",
+      "Read(/**/node_modules/**)",
+
+      "Read(/frontend/.nuxt/**)",
+      "Read(/frontend/.output/**)",
+      "Read(/frontend/dist/**)",
+      "Read(/frontend/.vite/**)",
+      "Read(/frontend/.turbo/**)",
+      "Read(/frontend/.cache/**)",
+      "Read(/frontend/.vercel/**)",
+      "Read(/frontend/.netlify/**)",
+      "Read(/frontend/coverage/**)",
+      "Read(/frontend/logs/**)",
+
+      "Read(/frontend/public/images/**)",
+      "Read(/frontend/public/img/**)",
+      "Read(/frontend/public/videos/**)",
+      "Read(/frontend/public/fonts/**)",
+      "Read(/frontend/assets/images/**)",
+      "Read(/frontend/assets/fonts/**)",
+      "Read(/frontend/static/**)",
+
+      "Read(/frontend/app/assets/**/images/**)",
+      "Read(/frontend/app/assets/**/img/**)",
+      "Read(/frontend/app/assets/**/videos/**)",
+      "Read(/frontend/app/assets/**/fonts/**)",
+      "Read(/frontend/app/assets/**/*.{png,jpg,jpeg,gif,svg,webp,avif,ico,mp4,mov,mp3,ogg,wav,woff,woff2,ttf,otf})",
+
+      "Read(/frontend/**/*.png)",
+      "Read(/frontend/**/*.jpg)",
+      "Read(/frontend/**/*.jpeg)",
+      "Read(/frontend/**/*.gif)",
+      "Read(/frontend/**/*.svg)",
+      "Read(/frontend/**/*.webp)",
+      "Read(/frontend/**/*.mp4)",
+      "Read(/frontend/**/*.mov)",
+
+      "Read(/backend/dist/**)",
+      "Read(/backend/.cache/**)",
+      "Read(/backend/coverage/**)",
+      "Read(/backend/logs/**)",
+      "Read(/backend/**/*.log)",
+
+      "Read(/**/package-lock.json)",
+      "Read(/**/yarn.lock)",
+      "Read(/**/pnpm-lock.yaml)"
+    ]
+  },
+  "env": {
+    "DISABLE_TELEMETRY": "1"
+  }
 }
