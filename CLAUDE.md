@@ -170,7 +170,7 @@ expectErrorResponse(errorResponse.body, 'BadRequestException', 'validation');
 
 ## Project Overview
 
-This is a **Nest.js + Nuxt.js monorepo** test application.
+This is a **Nest.js + Nuxt.js monorepo** application.
 
 For detailed setup, commands, and architecture overview, see: **[docs/development-setup.md](docs/development-setup.md)**
 

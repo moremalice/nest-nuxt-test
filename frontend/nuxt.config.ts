@@ -177,6 +177,7 @@ export default defineNuxtConfig({
             NUXT_APP_ENVIRONMENT: process.env.NUXT_PUBLIC_APP_ENV || 'development',
             NUXT_API_BASE_URL: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3020',
             siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
+            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY,
         }
     }
 })
