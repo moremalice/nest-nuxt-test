@@ -33,10 +33,51 @@
             <path d="M8 3.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zM8 0a8 8 0 1 0 8 8A8 8 0 0 0 8 0zM8 1a7 7 0 1 1-7 7 7 7 0 0 1 7-7z"/>
           </svg>
         </span>
-        <span class="checkbox-text">
-          {{ checkboxText }}
-        </span>
+        <div class="checkbox-content">
+          <RecaptchaLoadingComponent 
+            v-if="isExecuting"
+            loading-text="Generating reCAPTCHA token..."
+          />
+          <div v-else-if="isVerified" class="verified-content">
+            <svg
+              class="verified-check"
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+            </svg>
+            <span class="verified-text">Verified</span>
+          </div>
+          <span v-else class="checkbox-text">
+            This site is protected by reCAPTCHA
+          </span>
+        </div>
       </label>
+    </div>
+    
+    <div class="recaptcha-terms">
+      and the Google 
+      <a 
+        href="https://policies.google.com/privacy" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="recaptcha-link"
+      >
+        Privacy Policy
+      </a>
+      and 
+      <a 
+        href="https://policies.google.com/terms" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="recaptcha-link"
+      >
+        Terms of Service
+      </a>
+      apply.
     </div>
     
     <div v-if="errorMessage" class="error-message">
@@ -101,11 +142,6 @@ const checkboxStateClass = computed(() => ({
   'checkbox-unchecked': !isChecked.value && !isVerified.value
 }))
 
-const checkboxText = computed(() => {
-  if (isExecuting.value) return 'reCAPTCHA 토큰 생성 중...'
-  if (isVerified.value) return '로봇이 아닙니다 ✓'
-  return '로봇이 아닙니다'
-})
 
 const executeRecaptchaVerification = async (): Promise<boolean> => {
   try {
@@ -286,9 +322,59 @@ defineExpose({
   animation: spin 1s linear infinite;
 }
 
+.checkbox-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .checkbox-text {
   color: var(--black);
   font-weight: var(--weight500);
+}
+
+.verified-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #22c55e;
+  font-weight: var(--weight600);
+}
+
+.verified-check {
+  color: #22c55e;
+}
+
+.verified-text {
+  color: #22c55e;
+  font-size: var(--txt14);
+  font-weight: var(--weight600);
+}
+
+.recaptcha-terms {
+  margin-top: 4px;
+  margin-left: 28px;
+  font-size: var(--txt12);
+  line-height: 1.4;
+  color: var(--dark);
+}
+
+.recaptcha-link {
+  color: #4285f4;
+  text-decoration: none;
+  font-weight: var(--weight500);
+  transition: all 0.2s ease;
+}
+
+.recaptcha-link:hover {
+  text-decoration: underline;
+  color: #3367d6;
+}
+
+.recaptcha-link:focus {
+  outline: 2px solid rgba(66, 133, 244, 0.3);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .error-message {
