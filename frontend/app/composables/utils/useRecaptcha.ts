@@ -234,34 +234,14 @@ export const useRecaptcha = () => {
     }
   }
 
-  // Validate token with backend
+  /**
+   * @deprecated Frontend validation is not used. Backend handles validation automatically via RecaptchaGuard
+   * The actual validation happens when calling protected endpoints (e.g., /auth/register)
+   * This function is kept for backward compatibility but should not be used
+   */
   const validateToken = async (token: string, action: string = 'submit'): Promise<boolean> => {
-    try {
-      const response = await useApi<{
-        isValid: boolean
-        score?: number
-        action?: string
-        message?: string
-      }>('/auth/validate-recaptcha', {
-        recaptchaToken: token,
-        expectedAction: action
-      })
-
-      if (response.status === 'success') {
-        console.log('reCAPTCHA validation result:', {
-          isValid: response.data.isValid,
-          score: response.data.score,
-          action: response.data.action
-        })
-        return response.data.isValid
-      }
-
-      console.warn('reCAPTCHA validation failed:', response.data)
-      return false
-    } catch (error) {
-      console.error('reCAPTCHA validation API error:', error)
-      return false
-    }
+    console.warn('validateToken is deprecated. Backend handles validation automatically.')
+    return false
   }
 
   // Token management

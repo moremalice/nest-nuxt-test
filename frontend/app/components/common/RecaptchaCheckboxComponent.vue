@@ -43,12 +43,11 @@
       {{ errorMessage }}
     </div>
     
-    <div v-if="showRetry && !isVerified" class="retry-section">
+    <div v-if="showRetry && errorMessage && !isVerified && !isExecuting" class="retry-section">
       <button
         type="button"
         class="retry-button"
         @click="handleRetry"
-        :disabled="isExecuting"
       >
         다시 시도
       </button>
@@ -103,7 +102,7 @@ const checkboxStateClass = computed(() => ({
 }))
 
 const checkboxText = computed(() => {
-  if (isExecuting.value) return 'reCAPTCHA 검증 중...'
+  if (isExecuting.value) return 'reCAPTCHA 토큰 생성 중...'
   if (isVerified.value) return '로봇이 아닙니다 ✓'
   return '로봇이 아닙니다'
 })
@@ -119,13 +118,13 @@ const executeRecaptchaVerification = async (): Promise<boolean> => {
       isVerified.value = true
       verifiedToken.value = result.token
       emit('verified', result.token)
-      console.log('reCAPTCHA verification successful')
+      console.log('reCAPTCHA token generated successfully')
       return true
     } else {
-      const error = result.error || 'reCAPTCHA 검증에 실패했습니다'
+      const error = result.error || 'reCAPTCHA 토큰 생성에 실패했습니다'
       errorMessage.value = error
       emit('error', error)
-      console.error('reCAPTCHA verification failed:', error)
+      console.error('reCAPTCHA token generation failed:', error)
       return false
     }
   } catch (error: any) {
